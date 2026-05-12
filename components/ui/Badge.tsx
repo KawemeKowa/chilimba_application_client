@@ -1,0 +1,43 @@
+interface BadgeProps {
+  label: string;
+  variant?: 'success' | 'warning' | 'danger' | 'info' | 'neutral';
+}
+
+export function Badge({ label, variant = 'neutral' }: BadgeProps) {
+  const variants = {
+    success: 'bg-emerald-100 text-emerald-700',
+    warning: 'bg-amber-100 text-amber-700',
+    danger: 'bg-red-100 text-red-700',
+    info: 'bg-blue-100 text-blue-700',
+    neutral: 'bg-gray-100 text-gray-600',
+  };
+  return (
+    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${variants[variant]}`}>
+      {label}
+    </span>
+  );
+}
+
+export function statusVariant(status: string): BadgeProps['variant'] {
+  const map: Record<string, BadgeProps['variant']> = {
+    active: 'success',
+    paid: 'success',
+    approved: 'success',
+    completed: 'success',
+    healthy: 'success',
+    pending: 'warning',
+    pending_approval: 'warning',
+    pending_verification: 'warning',
+    processing: 'info',
+    scheduled: 'info',
+    late: 'danger',
+    rejected: 'danger',
+    suspended: 'danger',
+    banned: 'danger',
+    paused: 'neutral',
+    waived: 'neutral',
+    closed: 'neutral',
+    expired: 'neutral',
+  };
+  return map[status] || 'neutral';
+}
