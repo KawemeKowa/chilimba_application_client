@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/Input';
 import { Eye, EyeOff } from 'lucide-react';
 
 export default function LoginPage() {
-  const { login } = useAuth();
+  const { login, user, loading: authLoading } = useAuth();
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -17,16 +17,20 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  useEffect(() => {
+    if (!authLoading && user) {
+      router.replace('/dashboard');
+    }
+  }, [authLoading, user, router]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
     try {
       await login(email, password);
-      router.push('/dashboard');
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Login failed');
-    } finally {
       setLoading(false);
     }
   };

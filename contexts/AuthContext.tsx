@@ -3,6 +3,21 @@
 import { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { auth, User } from '@/lib/api';
 
+function normalizeUser(u: Record<string, unknown>): User {
+  return {
+    id: (u.id as string),
+    firstName: (u.firstName || u.first_name) as string,
+    lastName: (u.lastName || u.last_name) as string,
+    email: u.email as string,
+    phone: (u.phone) as string | undefined,
+    role: (u.role as User['role']),
+    status: (u.status as string),
+    dateOfBirth: (u.dateOfBirth || u.date_of_birth) as string | undefined,
+    photoUrl: (u.photoUrl || u.profile_photo_url) as string | undefined,
+    createdAt: (u.createdAt || u.created_at) as string | undefined,
+  };
+}
+
 interface AuthContextType {
   user: User | null;
   loading: boolean;
@@ -28,7 +43,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!token) { setLoading(false); return; }
     try {
       const res = await auth.me();
-      setUser(res.data);
+      setUser(normalizeUser(res.data as unknown as Record<string, unknown>));
     } catch {
       setUser(null);
     } finally {
@@ -44,7 +59,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const res = await auth.login(email, password);
     localStorage.setItem('accessToken', res.data.accessToken);
     localStorage.setItem('refreshToken', res.data.refreshToken);
-    setUser(res.data.user);
+    setUser(normalizeUser(res.data.user as unknown as Record<string, unknown>));
   };
 
   const logout = async () => {

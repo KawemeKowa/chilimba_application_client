@@ -5,19 +5,20 @@ import { useRouter } from 'next/navigation';
 import { Navbar } from '@/components/layout/Navbar';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { PageSpinner } from '@/components/ui/Spinner';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export default function SuperAdminLayout({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  if (loading) return <PageSpinner />;
+  useEffect(() => {
+    if (!loading && (!user || user.role !== 'super_admin')) {
+      router.replace('/dashboard');
+    }
+  }, [loading, user, router]);
 
-  if (!user || user.role !== 'super_admin') {
-    router.replace('/dashboard');
-    return null;
-  }
+  if (loading || !user || user.role !== 'super_admin') return <PageSpinner />;
 
   return (
     <div className="min-h-screen bg-gray-50">

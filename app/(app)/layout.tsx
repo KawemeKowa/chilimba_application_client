@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { Navbar } from '@/components/layout/Navbar';
@@ -12,12 +12,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  if (loading) return <PageSpinner />;
+  useEffect(() => {
+    if (!loading && !user) {
+      router.replace('/auth/login');
+    }
+  }, [loading, user, router]);
 
-  if (!user) {
-    router.replace('/auth/login');
-    return null;
-  }
+  if (loading || !user) return <PageSpinner />;
 
   return (
     <div className="min-h-screen bg-gray-50">
