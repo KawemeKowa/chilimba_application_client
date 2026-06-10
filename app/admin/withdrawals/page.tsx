@@ -68,7 +68,7 @@ export default function AdminWithdrawalsPage() {
                     <tr key={w.id} className="hover:bg-gray-50">
                       <td className="px-5 py-3 text-sm text-gray-600">{w.groupName || w.groupId}</td>
                       <td className="px-5 py-3 text-sm text-gray-600">{w.requesterName || w.requestedBy}</td>
-                      <td className="px-5 py-3 text-sm font-semibold text-gray-900">ZMW {w.amount.toLocaleString()}</td>
+                      <td className="px-5 py-3 text-sm font-semibold text-gray-900">ZMW {(w.amount ?? 0).toLocaleString()}</td>
                       <td className="px-5 py-3 text-sm text-gray-600 max-w-48 truncate">{w.reason}</td>
                       <td className="px-5 py-3"><Badge label={w.status} variant={statusVariant(w.status)} /></td>
                       <td className="px-5 py-3 text-sm text-gray-500">{new Date(w.createdAt).toLocaleDateString()}</td>

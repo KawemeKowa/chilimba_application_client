@@ -68,7 +68,7 @@ export default function ContributionsPage() {
               {data?.data.map(c => (
                 <tr key={c.id} className="hover:bg-gray-50">
                   <td className="px-5 py-3 text-sm text-gray-900">{c.userId}</td>
-                  <td className="px-5 py-3 text-sm font-semibold text-gray-900">ZMW {c.amount.toLocaleString()}</td>
+                  <td className="px-5 py-3 text-sm font-semibold text-gray-900">ZMW {(c.amount ?? 0).toLocaleString()}</td>
                   <td className="px-5 py-3 text-sm text-gray-600">{new Date(c.dueDate).toLocaleDateString()}</td>
                   <td className="px-5 py-3 text-sm text-gray-600">{c.paidAt ? new Date(c.paidAt).toLocaleDateString() : '—'}</td>
                   <td className="px-5 py-3 text-sm text-gray-600">{c.cycleNumber ?? '—'}</td>

@@ -99,7 +99,7 @@ export default function TransactionsPage() {
                       <td className={`px-5 py-3 text-sm font-medium capitalize ${txTypeColor(tx.type)}`}>{tx.type}</td>
                       <td className="px-5 py-3 text-sm text-gray-600 max-w-24 truncate">{tx.from || '—'}</td>
                       <td className="px-5 py-3 text-sm text-gray-600 max-w-24 truncate">{tx.to || '—'}</td>
-                      <td className="px-5 py-3 text-sm font-semibold text-gray-900">ZMW {tx.amount.toLocaleString()}</td>
+                      <td className="px-5 py-3 text-sm font-semibold text-gray-900">ZMW {(tx.amount ?? 0).toLocaleString()}</td>
                       <td className="px-5 py-3"><Badge label={tx.status} variant={statusVariant(tx.status)} /></td>
                       <td className="px-5 py-3 text-xs text-gray-400 font-mono truncate max-w-28">{tx.reference || '—'}</td>
                     </tr>

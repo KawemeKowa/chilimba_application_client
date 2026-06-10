@@ -61,7 +61,7 @@ export default function AdminPayoutsPage() {
                     <td className="px-5 py-3 text-sm text-gray-600">{p.cycleNumber}</td>
                     <td className="px-5 py-3 text-sm text-gray-600">#{p.payoutOrder}</td>
                     <td className="px-5 py-3 text-sm text-gray-600">{new Date(p.scheduledDate).toLocaleDateString()}</td>
-                    <td className="px-5 py-3 text-sm font-semibold text-gray-900">ZMW {p.expectedAmount.toLocaleString()}</td>
+                    <td className="px-5 py-3 text-sm font-semibold text-gray-900">ZMW {(p.expectedAmount ?? 0).toLocaleString()}</td>
                     <td className="px-5 py-3"><Badge label={p.status} variant={statusVariant(p.status)} /></td>
                     <td className="px-5 py-3">
                       <Button size="sm" loading={disbursing === String(i)} onClick={() => disburse(p.userId || String(i))}>

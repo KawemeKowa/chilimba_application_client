@@ -119,8 +119,8 @@ export default function CommitteesPage() {
 
                 <div className="mb-3">
                   <div className="flex justify-between text-sm mb-1">
-                    <span className="text-gray-500">ZMW {pool.currentAmount.toLocaleString()}</span>
-                    <span className="font-medium text-gray-900">ZMW {pool.targetAmount.toLocaleString()}</span>
+                    <span className="text-gray-500">ZMW {(pool.currentAmount ?? 0).toLocaleString()}</span>
+                    <span className="font-medium text-gray-900">ZMW {(pool.targetAmount ?? 0).toLocaleString()}</span>
                   </div>
                   <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
                     <div className="h-full bg-teal-500 rounded-full" style={{ width: `${Math.min(progress, 100)}%` }} />
@@ -192,7 +192,7 @@ export default function CommitteesPage() {
                 <p className="font-medium text-gray-900">{c.isAnonymous ? 'Anonymous' : `${c.firstName} ${c.lastName}`}</p>
                 {c.message && <p className="text-gray-500 text-xs">{c.message}</p>}
               </div>
-              <span className="font-semibold">ZMW {c.amount.toLocaleString()}</span>
+              <span className="font-semibold">ZMW {(c.amount ?? 0).toLocaleString()}</span>
             </div>
           ))}
         </div>

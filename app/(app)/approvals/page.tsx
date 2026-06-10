@@ -79,7 +79,7 @@ export default function ApprovalsPage() {
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="text-right">
-                      <p className="font-semibold text-gray-900">ZMW {c.amount.toLocaleString()}</p>
+                      <p className="font-semibold text-gray-900">ZMW {(c.amount ?? 0).toLocaleString()}</p>
                       <Badge label={c.status} variant={statusVariant(c.status)} />
                     </div>
                     <Button size="sm" loading={paying === c.id} onClick={() => handlePay(c.id)}>
@@ -110,7 +110,7 @@ export default function ApprovalsPage() {
               <Card key={w.id}>
                 <div className="flex items-start justify-between">
                   <div>
-                    <p className="font-medium text-gray-900">ZMW {w.amount.toLocaleString()}</p>
+                    <p className="font-medium text-gray-900">ZMW {(w.amount ?? 0).toLocaleString()}</p>
                     <p className="text-sm text-gray-600 mt-1">{w.reason}</p>
                     <p className="text-xs text-gray-400 mt-1">By {w.requesterName || w.requestedBy}</p>
                   </div>

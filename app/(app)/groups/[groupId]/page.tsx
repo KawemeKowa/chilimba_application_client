@@ -113,7 +113,7 @@ export default function GroupDetailPage() {
           <dl className="space-y-3 text-sm">
             <div className="flex justify-between">
               <dt className="text-gray-500">Monthly Amount</dt>
-              <dd className="font-medium">ZMW {group.monthlyAmount.toLocaleString()}</dd>
+              <dd className="font-medium">ZMW {(group.monthlyAmount ?? 0).toLocaleString()}</dd>
             </div>
             <div className="flex justify-between">
               <dt className="text-gray-500">Members</dt>
@@ -210,7 +210,7 @@ export default function GroupDetailPage() {
                   <p className="text-gray-500">{new Date(s.scheduledDate).toLocaleDateString()}</p>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="font-semibold">ZMW {s.expectedAmount.toLocaleString()}</span>
+                  <span className="font-semibold">ZMW {(s.expectedAmount ?? 0).toLocaleString()}</span>
                   <Badge label={s.status} variant={statusVariant(s.status)} />
                 </div>
               </div>

@@ -88,7 +88,7 @@ export default function AdminDashboard() {
                   <p className="text-xs text-gray-500">Cycle {p.cycleNumber} · {new Date(p.scheduledDate).toLocaleDateString()}</p>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="font-semibold text-gray-900">ZMW {p.expectedAmount.toLocaleString()}</span>
+                  <span className="font-semibold text-gray-900">ZMW {(p.expectedAmount ?? 0).toLocaleString()}</span>
                   <Badge label={p.status} variant={statusVariant(p.status)} />
                   <Button size="sm" loading={disbursing === String(i)} onClick={() => disburse(String(i))}>
                     Disburse

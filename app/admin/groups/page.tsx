@@ -71,7 +71,7 @@ export default function AdminGroupsPage() {
                         <p className="text-sm font-medium text-gray-900">{g.name}</p>
                         {g.description && <p className="text-xs text-gray-500 truncate max-w-48">{g.description}</p>}
                       </td>
-                      <td className="px-5 py-3 text-sm font-medium text-gray-900">ZMW {g.monthlyAmount.toLocaleString()}</td>
+                      <td className="px-5 py-3 text-sm font-medium text-gray-900">ZMW {(g.monthlyAmount ?? 0).toLocaleString()}</td>
                       <td className="px-5 py-3 text-sm text-gray-600">{g.memberCount || 0}/{g.maxMembers}</td>
                       <td className="px-5 py-3 text-sm text-gray-600">{g.currency}</td>
                       <td className="px-5 py-3"><Badge label={g.status} variant={statusVariant(g.status)} /></td>

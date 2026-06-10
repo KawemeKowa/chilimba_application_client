@@ -105,7 +105,7 @@ export default function GroupsPage() {
                 <div className="grid grid-cols-2 gap-2 mt-4 text-sm">
                   <div className="flex items-center gap-1.5 text-gray-600">
                     <Coins size={14} className="text-teal-500" />
-                    <span>ZMW {g.monthlyAmount.toLocaleString()}/mo</span>
+                    <span>ZMW {(g.monthlyAmount ?? 0).toLocaleString()}/mo</span>
                   </div>
                   <div className="flex items-center gap-1.5 text-gray-600">
                     <Users size={14} className="text-teal-500" />

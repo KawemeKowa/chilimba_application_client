@@ -90,7 +90,7 @@ export default function DashboardPage() {
                     <p className="text-xs text-gray-500">Due: {new Date(c.dueDate).toLocaleDateString()}</p>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="font-semibold text-gray-900">ZMW {c.amount.toLocaleString()}</span>
+                    <span className="font-semibold text-gray-900">ZMW {(c.amount ?? 0).toLocaleString()}</span>
                     <Badge label={c.status} variant={statusVariant(c.status)} />
                   </div>
                 </div>
@@ -153,7 +153,7 @@ export default function DashboardPage() {
                     <Badge label={g.status} variant={statusVariant(g.status)} />
                   </div>
                   <h3 className="font-medium text-gray-900 mt-2 line-clamp-1">{g.name}</h3>
-                  <p className="text-sm text-gray-500 mt-1">ZMW {g.monthlyAmount.toLocaleString()}/month</p>
+                  <p className="text-sm text-gray-500 mt-1">ZMW {(g.monthlyAmount ?? 0).toLocaleString()}/month</p>
                   <p className="text-xs text-gray-400 mt-1">{g.memberCount || 0} members</p>
                 </div>
               </Link>

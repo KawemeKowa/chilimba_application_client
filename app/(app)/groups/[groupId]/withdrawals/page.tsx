@@ -84,7 +84,7 @@ export default function WithdrawalsPage() {
             <div className="flex items-start justify-between">
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-2">
-                  <span className="font-semibold text-gray-900">ZMW {w.amount.toLocaleString()}</span>
+                  <span className="font-semibold text-gray-900">ZMW {(w.amount ?? 0).toLocaleString()}</span>
                   <Badge label={w.status} variant={statusVariant(w.status)} />
                 </div>
                 <p className="text-sm text-gray-600 mb-2">{w.reason}</p>
