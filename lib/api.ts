@@ -534,6 +534,7 @@ export interface GroupInvitation {
   email: string;
   status: 'pending' | 'accepted' | 'declined' | 'expired';
   expiresAt: string;
+  userExists: boolean;
   group: {
     id: string;
     name: string;

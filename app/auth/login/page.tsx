@@ -13,7 +13,9 @@ function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const returnUrl = searchParams.get('returnUrl') || '/dashboard';
-  const [email, setEmail] = useState('');
+  const lockedEmail = searchParams.get('email') || '';
+  const locked = searchParams.get('locked') === '1';
+  const [email, setEmail] = useState(lockedEmail);
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -59,10 +61,12 @@ function LoginForm() {
               label="Email address"
               type="email"
               value={email}
-              onChange={e => setEmail(e.target.value)}
+              onChange={locked ? undefined : e => setEmail(e.target.value)}
+              readOnly={locked}
               placeholder="you@example.com"
               required
               autoComplete="email"
+              className={locked ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''}
             />
             <div className="flex flex-col gap-1">
               <label className="text-sm font-medium text-gray-700">Password</label>
