@@ -20,6 +20,7 @@ export default function InvitationPage() {
   const [invite, setInvite] = useState<GroupInvitation | null>(null);
   const [pageState, setPageState] = useState<PageState>('loading');
   const [actionLoading, setActionLoading] = useState(false);
+  const [autoAccepting, setAutoAccepting] = useState(false);
   const [message, setMessage] = useState('');
 
   useEffect(() => {
@@ -33,11 +34,26 @@ export default function InvitationPage() {
       });
   }, [token]);
 
+  // Auto-accept when user is logged in with the correct email
+  useEffect(() => {
+    if (pageState !== 'ready' || authLoading || !user || !invite || autoAccepting) return;
+    if (user.email !== invite.email) return;
+    setAutoAccepting(true);
+    invitations.accept(token)
+      .then(res => router.replace(`/groups/${res.groupId}`))
+      .catch(err => {
+        const msg = err instanceof Error ? err.message : '';
+        setAutoAccepting(false);
+        if (msg.toLowerCase().includes('already')) {
+          router.replace(`/groups/${invite.group.id}`);
+        } else {
+          setMessage(msg || 'Failed to join group');
+          setPageState('error');
+        }
+      });
+  }, [pageState, authLoading, user, invite, autoAccepting, token, router]);
+
   const handleAccept = async () => {
-    if (!user) {
-      router.push(`/auth/login?returnUrl=/invitations/${token}`);
-      return;
-    }
     setActionLoading(true);
     try {
       const res = await invitations.accept(token);
@@ -63,7 +79,8 @@ export default function InvitationPage() {
     }
   };
 
-  if (pageState === 'loading' || authLoading) return <PageSpinner />;
+  const willAutoAccept = pageState === 'ready' && !authLoading && !!user && !!invite && user.email === invite.email;
+  if (pageState === 'loading' || authLoading || autoAccepting || willAutoAccept) return <PageSpinner />;
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">

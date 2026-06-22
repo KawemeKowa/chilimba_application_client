@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { auth, invitations } from '@/lib/api';
+import { auth } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -24,14 +24,7 @@ function RegisterForm() {
 
   useEffect(() => {
     if (!authLoading && user) {
-      if (returnUrl.startsWith('/invitations/')) {
-        const invToken = returnUrl.replace('/invitations/', '');
-        invitations.accept(invToken)
-          .then(res => router.replace(`/groups/${res.groupId}`))
-          .catch(() => router.replace(returnUrl));
-      } else {
-        router.replace(returnUrl);
-      }
+      router.replace(returnUrl);
     }
   }, [authLoading, user, router, returnUrl]);
 
