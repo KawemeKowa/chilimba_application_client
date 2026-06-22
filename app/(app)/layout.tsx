@@ -27,10 +27,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <div className="bg-amber-400 text-white px-6 py-3 flex items-center justify-between">
           <div>
             <span className="font-medium">Status: </span>
-            <span>Complete your identity verification to unlock all features</span>
+            <span>Your account is pending verification by our team. Ensure your profile is complete to speed up the process.</span>
           </div>
-          <button className="bg-teal-600 text-white text-sm font-medium px-4 py-1.5 rounded-lg hover:bg-teal-700 cursor-pointer">
-            Complete Verification
+          <button
+            onClick={() => router.push('/profile')}
+            className="bg-teal-600 text-white text-sm font-medium px-4 py-1.5 rounded-lg hover:bg-teal-700 cursor-pointer shrink-0 ml-4"
+          >
+            View Profile
           </button>
         </div>
       )}
