@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { auth } from '@/lib/api';
+import { auth, invitations } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -12,17 +12,26 @@ function RegisterForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const returnUrl = searchParams.get('returnUrl') || '/dashboard';
+  const lockedEmail = searchParams.get('email') || '';
+  const locked = searchParams.get('locked') === '1';
   const { user, loading: authLoading, refresh } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [form, setForm] = useState({
-    firstName: '', lastName: '', email: '', phone: '',
+    firstName: '', lastName: '', email: lockedEmail, phone: '',
     password: '', dateOfBirth: '',
   });
 
   useEffect(() => {
     if (!authLoading && user) {
-      router.replace(returnUrl);
+      if (returnUrl.startsWith('/invitations/')) {
+        const invToken = returnUrl.replace('/invitations/', '');
+        invitations.accept(invToken)
+          .then(res => router.replace(`/groups/${res.groupId}`))
+          .catch(() => router.replace(returnUrl));
+      } else {
+        router.replace(returnUrl);
+      }
     }
   }, [authLoading, user, router, returnUrl]);
 
@@ -72,7 +81,17 @@ function RegisterForm() {
               <Input label="First name" name="firstName" value={form.firstName} onChange={handleChange} placeholder="Bwalya" required />
               <Input label="Last name" name="lastName" value={form.lastName} onChange={handleChange} placeholder="Mwale" required />
             </div>
-            <Input label="Email address" type="email" name="email" value={form.email} onChange={handleChange} placeholder="you@example.com" required />
+            <Input
+              label="Email address"
+              type="email"
+              name="email"
+              value={form.email}
+              onChange={locked ? undefined : handleChange}
+              readOnly={locked}
+              placeholder="you@example.com"
+              required
+              className={locked ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''}
+            />
             <Input label="Phone number" type="tel" name="phone" value={form.phone} onChange={handleChange} placeholder="+260976543210" required />
             <Input label="Date of birth" type="date" name="dateOfBirth" value={form.dateOfBirth} onChange={handleChange} required />
             <Input label="Password" type="password" name="password" value={form.password} onChange={handleChange} placeholder="Minimum 8 characters" required />

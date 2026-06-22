@@ -167,13 +167,21 @@ export default function InvitationPage() {
 
               {!user ? (
                 <div className="space-y-3">
-                  <p className="text-sm text-gray-500 text-center">Sign in or create an account to accept.</p>
-                  <Link href={`/auth/login?returnUrl=/invitations/${token}`}>
-                    <Button className="w-full">Sign In to Accept</Button>
-                  </Link>
-                  <Link href={`/auth/register?returnUrl=/invitations/${token}`}>
-                    <Button variant="outline" className="w-full">Create Account</Button>
-                  </Link>
+                  {invite.userExists ? (
+                    <>
+                      <p className="text-sm text-gray-500 text-center">Sign in to accept this invitation.</p>
+                      <Link href={`/auth/login?email=${encodeURIComponent(invite.email)}&locked=1&returnUrl=/invitations/${token}`}>
+                        <Button className="w-full">Sign In to Accept</Button>
+                      </Link>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-sm text-gray-500 text-center">Create a free account to accept this invitation.</p>
+                      <Link href={`/auth/register?email=${encodeURIComponent(invite.email)}&locked=1&returnUrl=/invitations/${token}`}>
+                        <Button className="w-full">Create Account to Accept</Button>
+                      </Link>
+                    </>
+                  )}
                   <button
                     onClick={handleDecline}
                     disabled={actionLoading}
