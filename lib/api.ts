@@ -41,7 +41,7 @@ async function request<T>(
 
   const res = await fetch(`${BASE_URL}${path}`, { ...options, headers });
 
-  if (res.status === 401 && retry) {
+  if (res.status === 401 && retry && !path.startsWith('/auth/')) {
     const newToken = await refreshAccessToken();
     if (newToken) return request<T>(path, options, false);
     if (typeof window !== 'undefined') {
