@@ -97,6 +97,18 @@ export const groups = {
     request<{ success: boolean; data: PayoutSchedule[] }>(`/groups/${groupId}/payout-schedule`),
   removeMember: (groupId: string, userId: string) =>
     request(`/groups/${groupId}/members/${userId}`, { method: 'DELETE' }),
+  invite: (groupId: string, email: string) =>
+    request(`/groups/${groupId}/invite`, { method: 'POST', body: JSON.stringify({ email }) }),
+};
+
+// Invitations
+export const invitations = {
+  get: (token: string) =>
+    request<{ success: boolean; data: GroupInvitation }>(`/groups/invitations/${token}`),
+  accept: (token: string) =>
+    request<{ success: boolean; message: string; groupId: string }>(`/groups/invitations/${token}/accept`, { method: 'POST' }),
+  decline: (token: string) =>
+    request<{ success: boolean; message: string }>(`/groups/invitations/${token}/decline`, { method: 'POST' }),
 };
 
 // Contributions
@@ -515,6 +527,23 @@ export interface AuditLog {
   entityId?: string;
   details?: string;
   createdAt: string;
+}
+
+export interface GroupInvitation {
+  token: string;
+  email: string;
+  status: 'pending' | 'accepted' | 'declined' | 'expired';
+  expiresAt: string;
+  group: {
+    id: string;
+    name: string;
+    description?: string;
+    monthlyAmount: number;
+    maxMembers: number;
+    payoutDay: number;
+    currency: string;
+  };
+  invitedBy: { firstName: string; lastName: string };
 }
 
 export interface PaginatedResponse<T> {

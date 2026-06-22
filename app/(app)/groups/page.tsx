@@ -8,7 +8,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge, statusVariant } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
-import { Input, Textarea } from '@/components/ui/Input';
+import { Input, Textarea, Select } from '@/components/ui/Input';
 import { PageSpinner } from '@/components/ui/Spinner';
 import { Users, Plus, LogIn, ArrowRight, Calendar, Coins } from 'lucide-react';
 
@@ -140,8 +140,8 @@ export default function GroupsPage() {
           <Input label="Group name" name="name" placeholder="Lusaka North Chilimba" required />
           <Textarea label="Description (optional)" name="description" placeholder="What is this group for?" />
           <div className="grid grid-cols-2 gap-3">
-            <Input label="Monthly amount (ZMW)" name="monthlyAmount" type="number" min="1" placeholder="500" required />
-            <Input label="Max members" name="maxMembers" type="number" min="2" max="50" placeholder="12" required />
+            <Input label="Monthly amount" name="monthlyAmount" type="number" min="1" placeholder="500" required />
+            <Input label="Max members" name="maxMembers" type="number" min="2" max="5000" placeholder="12" required />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <Input label="Contribution day" name="contributionDay" type="number" min="1" max="28" placeholder="1" required />
@@ -149,10 +149,13 @@ export default function GroupsPage() {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <Input label="Min approvals for withdrawal" name="minApprovalsWithdrawal" type="number" min="1" placeholder="3" required />
-            <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium text-gray-700">Currency</label>
-              <input name="currency" defaultValue="ZMW" className="border border-gray-300 rounded-lg px-3 py-2 text-sm" readOnly />
-            </div>
+            <Select label="Currency" name="currency" defaultValue="ZMW">
+              <option value="ZMW">ZMW – Zambian Kwacha</option>
+              <option value="USD">USD – US Dollar</option>
+              <option value="EUR">EUR – Euro</option>
+              <option value="GBP">GBP – British Pound</option>
+              <option value="ZAR">ZAR – South African Rand</option>
+            </Select>
           </div>
           <div className="flex justify-end gap-3 pt-2">
             <Button type="button" variant="secondary" onClick={() => setCreateOpen(false)}>Cancel</Button>
