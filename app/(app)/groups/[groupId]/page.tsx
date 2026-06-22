@@ -14,8 +14,8 @@ import { Modal } from '@/components/ui/Modal';
 import { PageSpinner } from '@/components/ui/Spinner';
 import { useAuth } from '@/contexts/AuthContext';
 import {
-  Users, Calendar, Coins, ArrowLeft, Copy, RefreshCw,
-  MessageSquare, ArrowLeftRight, CheckSquare, Gift, List, Trash2
+  Users, Coins, ArrowLeft, Copy, RefreshCw,
+  MessageSquare, ArrowLeftRight, Gift, List, Trash2
 } from 'lucide-react';
 
 export default function GroupDetailPage() {
@@ -87,7 +87,8 @@ export default function GroupDetailPage() {
   if (loading) return <PageSpinner />;
   if (!group) return <div className="text-center py-16 text-gray-500">Group not found</div>;
 
-  const isAdmin = group.members?.find(m => m.userId === user?.id)?.role === 'admin';
+  const myRole = group.members?.find(m => m.userId === user?.id)?.role;
+  const isAdmin = myRole === 'owner' || myRole === 'admin';
 
   return (
     <div className="space-y-6">
