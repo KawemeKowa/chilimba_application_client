@@ -24,6 +24,7 @@ interface SelectProps {
   children: React.ReactNode;
   className?: string;
   value?: string;
+  defaultValue?: string;
   onChange?: (e: React.ChangeEvent<HTMLSelectElement>) => void;
   required?: boolean;
   name?: string;

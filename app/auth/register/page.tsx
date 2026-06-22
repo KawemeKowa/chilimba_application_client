@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { auth } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/Button';
@@ -10,15 +10,17 @@ import { Input } from '@/components/ui/Input';
 
 export default function RegisterPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const returnUrl = searchParams.get('returnUrl') || '/dashboard';
   const { user, loading: authLoading, refresh } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
     if (!authLoading && user) {
-      router.replace('/dashboard');
+      router.replace(returnUrl);
     }
-  }, [authLoading, user, router]);
+  }, [authLoading, user, router, returnUrl]);
   const [form, setForm] = useState({
     firstName: '', lastName: '', email: '', phone: '',
     password: '', dateOfBirth: '',

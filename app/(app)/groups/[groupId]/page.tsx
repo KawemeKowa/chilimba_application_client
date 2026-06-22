@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { groups } from '@/lib/api';
 import type { GroupDetail, PayoutSchedule } from '@/lib/api';
+import { Input } from '@/components/ui/Input';
+import { Mail } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge, statusVariant } from '@/components/ui/Badge';
@@ -26,6 +28,11 @@ export default function GroupDetailPage() {
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [removing, setRemoving] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviting, setInviting] = useState(false);
+  const [inviteError, setInviteError] = useState('');
+  const [inviteSuccess, setInviteSuccess] = useState('');
 
   const load = async () => {
     try {
@@ -59,6 +66,22 @@ export default function GroupDetailPage() {
     setRemoving(userId);
     try { await groups.removeMember(groupId, userId); load(); }
     finally { setRemoving(null); }
+  };
+
+  const handleInvite = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setInviting(true);
+    setInviteError('');
+    setInviteSuccess('');
+    try {
+      await groups.invite(groupId, inviteEmail);
+      setInviteSuccess(`Invitation sent to ${inviteEmail}`);
+      setInviteEmail('');
+    } catch (err: unknown) {
+      setInviteError(err instanceof Error ? err.message : 'Failed to send invitation');
+    } finally {
+      setInviting(false);
+    }
   };
 
   if (loading) return <PageSpinner />;
@@ -113,7 +136,7 @@ export default function GroupDetailPage() {
           <dl className="space-y-3 text-sm">
             <div className="flex justify-between">
               <dt className="text-gray-500">Monthly Amount</dt>
-              <dd className="font-medium">ZMW {(group.monthlyAmount ?? 0).toLocaleString()}</dd>
+              <dd className="font-medium">{group.currency ?? 'ZMW'} {(group.monthlyAmount ?? 0).toLocaleString()}</dd>
             </div>
             <div className="flex justify-between">
               <dt className="text-gray-500">Members</dt>
@@ -157,9 +180,16 @@ export default function GroupDetailPage() {
 
         {/* Members */}
         <Card className="lg:col-span-2">
-          <h2 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <Users size={18} /> Members ({group.members?.length || 0})
-          </h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-semibold text-gray-900 flex items-center gap-2">
+              <Users size={18} /> Members ({group.members?.length || 0})
+            </h2>
+            {isAdmin && (
+              <Button size="sm" onClick={() => { setInviteError(''); setInviteSuccess(''); setInviteOpen(true); }}>
+                <Mail size={14} /> Invite Member
+              </Button>
+            )}
+          </div>
           <div className="space-y-2">
             {group.members?.map(m => (
               <div key={m.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
@@ -217,6 +247,35 @@ export default function GroupDetailPage() {
             ))
           )}
         </div>
+      </Modal>
+
+      {/* Invite member modal */}
+      <Modal open={inviteOpen} onClose={() => setInviteOpen(false)} title="Invite Member by Email">
+        <form onSubmit={handleInvite} className="space-y-4">
+          {inviteError && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">{inviteError}</div>
+          )}
+          {inviteSuccess && (
+            <div className="p-3 bg-teal-50 border border-teal-200 rounded-lg text-sm text-teal-700">{inviteSuccess}</div>
+          )}
+          <Input
+            label="Email address"
+            type="email"
+            value={inviteEmail}
+            onChange={e => setInviteEmail(e.target.value)}
+            placeholder="member@example.com"
+            required
+          />
+          <p className="text-xs text-gray-500">
+            They will receive an email with a link to accept the invitation. The link expires in 7 days.
+          </p>
+          <div className="flex justify-end gap-3 pt-1">
+            <Button type="button" variant="secondary" onClick={() => setInviteOpen(false)}>Cancel</Button>
+            <Button type="submit" loading={inviting}>
+              <Mail size={14} /> Send Invitation
+            </Button>
+          </div>
+        </form>
       </Modal>
     </div>
   );
