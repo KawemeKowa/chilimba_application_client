@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { groups } from '@/lib/api';
-import type { GroupDetail, PayoutSchedule } from '@/lib/api';
+import type { GroupDetail, GroupMember, PayoutSchedule } from '@/lib/api';
 import { Input } from '@/components/ui/Input';
 import { Mail } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
@@ -15,7 +15,7 @@ import { PageSpinner } from '@/components/ui/Spinner';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   Users, Coins, ArrowLeft, Copy, RefreshCw,
-  MessageSquare, ArrowLeftRight, Gift, List, Trash2
+  MessageSquare, ArrowLeftRight, Gift, List, Trash2, Phone
 } from 'lucide-react';
 
 export default function GroupDetailPage() {
@@ -33,6 +33,7 @@ export default function GroupDetailPage() {
   const [inviting, setInviting] = useState(false);
   const [inviteError, setInviteError] = useState('');
   const [inviteSuccess, setInviteSuccess] = useState('');
+  const [profileMember, setProfileMember] = useState<GroupMember | null>(null);
 
   const load = async () => {
     try {
@@ -193,8 +194,11 @@ export default function GroupDetailPage() {
           </div>
           <div className="space-y-2">
             {group.members?.map(m => (
-              <div key={m.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div className="flex items-center gap-3">
+              <div key={m.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                <div
+                  className="flex items-center gap-3 flex-1 cursor-pointer"
+                  onClick={() => setProfileMember(m)}
+                >
                   <div className="w-9 h-9 bg-teal-100 rounded-full flex items-center justify-center flex-shrink-0">
                     <span className="text-teal-700 text-sm font-semibold">
                       {m.firstName?.[0]}{m.lastName?.[0]}
@@ -248,6 +252,48 @@ export default function GroupDetailPage() {
             ))
           )}
         </div>
+      </Modal>
+
+      {/* Member profile modal */}
+      <Modal
+        open={!!profileMember}
+        onClose={() => setProfileMember(null)}
+        title="Member Profile"
+      >
+        {profileMember && (
+          <div className="space-y-4">
+            <div className="flex items-center gap-4">
+              <div className="w-16 h-16 bg-teal-100 rounded-full flex items-center justify-center flex-shrink-0">
+                <span className="text-teal-700 text-xl font-bold">
+                  {profileMember.firstName?.[0]}{profileMember.lastName?.[0]}
+                </span>
+              </div>
+              <div>
+                <p className="text-lg font-semibold text-gray-900">
+                  {profileMember.firstName} {profileMember.lastName}
+                </p>
+                <Badge
+                  label={profileMember.role === 'owner' ? 'Owner' : profileMember.role === 'admin' ? 'Admin' : 'Member'}
+                  variant={profileMember.role === 'owner' || profileMember.role === 'admin' ? 'info' : 'neutral'}
+                />
+              </div>
+            </div>
+            <div className="space-y-3 pt-2 border-t border-gray-100">
+              <div className="flex items-center gap-3 text-sm">
+                <Mail size={16} className="text-gray-400 flex-shrink-0" />
+                <span className="text-gray-700">{profileMember.email || '—'}</span>
+              </div>
+              <div className="flex items-center gap-3 text-sm">
+                <Phone size={16} className="text-gray-400 flex-shrink-0" />
+                <span className="text-gray-700">{profileMember.phone || '—'}</span>
+              </div>
+              <div className="flex items-center gap-3 text-sm text-gray-500">
+                <span>Joined {new Date(profileMember.joinedAt).toLocaleDateString('en-ZM', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+                {profileMember.payoutOrder && <span>· Payout #{profileMember.payoutOrder}</span>}
+              </div>
+            </div>
+          </div>
+        )}
       </Modal>
 
       {/* Invite member modal */}
