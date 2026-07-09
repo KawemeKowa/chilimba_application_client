@@ -77,6 +77,16 @@ export const auth = {
       method: 'POST',
       body: JSON.stringify({ currentPassword, newPassword }),
     }),
+  forgotPassword: (email: string) =>
+    request<{ success: boolean; message: string }>('/auth/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    }),
+  resetPassword: (token: string, password: string) =>
+    request<{ success: boolean; message: string }>(`/auth/reset-password/${token}`, {
+      method: 'POST',
+      body: JSON.stringify({ password }),
+    }),
 };
 
 // Groups
