@@ -192,6 +192,29 @@ export const messages = {
     request(`/messages/${messageId}`, { method: 'DELETE' }),
 };
 
+// Payments
+export const payments = {
+  deposit: (walletId: string, amount: number, mobileNumber: string) =>
+    request<{ success: boolean; message: string; data: { referenceId: string; status: string } }>(
+      '/payments/deposit',
+      { method: 'POST', body: JSON.stringify({ walletId, amount, mobileNumber }) }
+    ),
+  methods: () =>
+    request<{ success: boolean; data: PaymentMethod[] }>('/payments/methods'),
+  saveMobileMoney: (mobileNumber: string, provider: 'mtn' | 'airtel' | 'zamtel') =>
+    request('/payments/methods/mobile-money', {
+      method: 'PUT',
+      body: JSON.stringify({ mobileNumber, provider }),
+    }),
+  saveBankDetails: (bankName: string, accountNumber: string, accountName: string, branch?: string) =>
+    request('/payments/methods/bank', {
+      method: 'PUT',
+      body: JSON.stringify({ bankName, accountNumber, accountName, branch }),
+    }),
+  history: () =>
+    request<{ success: boolean; data: LipilaTransaction[] }>('/payments/history'),
+};
+
 // Wallet
 export const wallet = {
   list: () =>
@@ -316,6 +339,8 @@ export const superAdmin = {
   },
   health: () =>
     request<{ success: boolean; data: HealthStatus }>('/superadmin/health'),
+  finance: () =>
+    request<{ success: boolean; data: FinanceOverview }>('/superadmin/finance'),
 };
 
 // Types
@@ -557,6 +582,64 @@ export interface GroupInvitation {
     currency: string;
   };
   invitedBy: { firstName: string; lastName: string };
+}
+
+export interface PaymentMethod {
+  id: string;
+  userId: string;
+  type: 'mobile_money' | 'bank';
+  mobileNumber?: string;
+  mobileProvider?: 'mtn' | 'airtel' | 'zamtel';
+  bankName?: string;
+  accountNumber?: string;
+  accountName?: string;
+  branch?: string;
+  isDefault: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface LipilaTransaction {
+  id: string;
+  referenceId: string;
+  lipilaId?: string;
+  type: 'collection' | 'disbursement';
+  status: 'pending' | 'successful' | 'failed';
+  amount: number;
+  currency: string;
+  accountNumber?: string;
+  paymentType?: string;
+  narration?: string;
+  walletId?: string;
+  userId?: string;
+  groupId?: string;
+  groupName?: string;
+  firstName?: string;
+  lastName?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface FinanceOverview {
+  lipilaWalletBalance: number | null;
+  lipilaBalanceError: boolean;
+  totalVirtualBalance: number;
+  summary: {
+    deposits_count: number;
+    deposits_total: number;
+    payouts_count: number;
+    payouts_total: number;
+    pending_count: number;
+  };
+  groupFunds: Array<{
+    id: string;
+    name: string;
+    currency: string;
+    group_balance: number;
+    member_count: number;
+  }>;
+  recentPayouts: LipilaTransaction[];
+  recentDeposits: LipilaTransaction[];
 }
 
 export interface PaginatedResponse<T> {
