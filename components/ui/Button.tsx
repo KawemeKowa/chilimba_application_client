@@ -22,10 +22,10 @@ export function Button({
 
   const variants = {
     primary: 'bg-teal-600 text-white hover:bg-teal-700 focus:ring-teal-500',
-    secondary: 'bg-gray-100 text-gray-700 hover:bg-gray-200 focus:ring-gray-400',
+    secondary: 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600 focus:ring-gray-400',
     danger: 'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500',
-    ghost: 'text-gray-600 hover:bg-gray-100 focus:ring-gray-400',
-    outline: 'border border-teal-600 text-teal-600 hover:bg-teal-50 focus:ring-teal-500',
+    ghost: 'text-gray-600 hover:bg-gray-100 dark:text-slate-400 dark:hover:bg-slate-700 focus:ring-gray-400',
+    outline: 'border border-teal-600 text-teal-600 hover:bg-teal-50 dark:hover:bg-teal-950 focus:ring-teal-500',
   };
 
   const sizes = {

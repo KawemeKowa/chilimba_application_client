@@ -53,19 +53,19 @@ function RegisterForm() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-900 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-14 h-14 bg-teal-600 rounded-2xl mb-4">
             <span className="text-white text-2xl font-bold">C</span>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">Create your account</h1>
-          <p className="text-gray-500 mt-1">Join Chilimba – digital village banking</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100">Create your account</h1>
+          <p className="text-gray-500 dark:text-slate-400 mt-1">Join Chilimba – digital village banking</p>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700 p-8">
           {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
+            <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-600 dark:text-red-400">
               {error}
             </div>
           )}
@@ -83,20 +83,20 @@ function RegisterForm() {
               readOnly={locked}
               placeholder="you@example.com"
               required
-              className={locked ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''}
+              className={locked ? 'bg-gray-100 dark:bg-slate-600 text-gray-500 dark:text-slate-400 cursor-not-allowed' : ''}
             />
             <Input label="Phone number" type="tel" name="phone" value={form.phone} onChange={handleChange} placeholder="+260976543210" required />
             <Input label="Date of birth" type="date" name="dateOfBirth" value={form.dateOfBirth} onChange={handleChange} required />
             <Input label="Password" type="password" name="password" value={form.password} onChange={handleChange} placeholder="Minimum 8 characters" required />
-            <p className="text-xs text-gray-500">You must be 16 years or older to register.</p>
+            <p className="text-xs text-gray-500 dark:text-slate-400">You must be 16 years or older to register.</p>
             <Button type="submit" className="w-full" size="lg" loading={loading}>
               Create Account
             </Button>
           </form>
 
-          <p className="mt-6 text-center text-sm text-gray-600">
+          <p className="mt-6 text-center text-sm text-gray-600 dark:text-slate-400">
             Already have an account?{' '}
-            <Link href="/auth/login" className="text-teal-600 font-medium hover:underline">
+            <Link href="/auth/login" className="text-teal-600 dark:text-teal-400 font-medium hover:underline">
               Sign in
             </Link>
           </p>
