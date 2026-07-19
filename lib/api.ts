@@ -249,10 +249,14 @@ export const messages = {
 
 // Payments
 export const payments = {
-  deposit: (target: { walletId?: string; groupId?: string }, amount: number, mobileNumber: string) =>
-    request<{ success: boolean; message: string; data: { referenceId: string; status: string } }>(
+  deposit: (
+    target: { walletId?: string; groupId?: string },
+    amount: number,
+    opts: { method: 'mobile_money'; mobileNumber: string } | { method: 'card' }
+  ) =>
+    request<{ success: boolean; message: string; data: { referenceId: string; status: string; paymentUrl?: string | null } }>(
       '/payments/deposit',
-      { method: 'POST', body: JSON.stringify({ ...target, amount, mobileNumber }) }
+      { method: 'POST', body: JSON.stringify({ ...target, amount, ...opts }) }
     ),
   methods: () =>
     request<{ success: boolean; data: PaymentMethod[] }>('/payments/methods'),
