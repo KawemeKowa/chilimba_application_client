@@ -38,7 +38,11 @@ export default function PayoutManagementPage() {
   if (loading) return <PageSpinner />;
   if (!data) return <div className="text-center py-16 text-gray-500 dark:text-slate-400">Failed to load payout data</div>;
 
-  const isApprover = data.myPermissions.includes('approver');
+  const has = (p: string) => data.myPermissions.includes('*') || data.myPermissions.includes(p);
+  const canSetOrder = has('payout.set_order');
+  const canApprove  = has('payout.approve_order');
+  const canDisburse = has('payout.disburse');
+  const isApprover  = canSetOrder || canApprove || canDisburse;
   const proposal   = data.pendingProposal;
   const iVoted     = proposal?.votes.some(v => v.approverId === user?.id);
   const iProposed  = proposal?.proposedBy === user?.id;
@@ -148,7 +152,7 @@ export default function PayoutManagementPage() {
                 {new Date(proposal.createdAt).toLocaleDateString()}
               </p>
             </div>
-            {isApprover && !iProposed && !iVoted && (
+            {canApprove && !iProposed && !iVoted && (
               <div className="flex gap-2 flex-shrink-0">
                 <Button variant="outline" size="sm" onClick={() => vote('approved')} loading={voting}
                   className="text-green-600 border-green-300 hover:bg-green-50 dark:hover:bg-green-900/20">
@@ -173,7 +177,7 @@ export default function PayoutManagementPage() {
             <h2 className="font-semibold text-gray-900 dark:text-slate-100 flex items-center gap-2">
               <ListOrdered size={18} /> Payout Order
             </h2>
-            {isApprover && !editing && !proposal && (
+            {canSetOrder && !editing && !proposal && (
               <Button size="sm" variant="outline" onClick={startEdit}>Edit Order</Button>
             )}
             {editing && (
@@ -256,7 +260,7 @@ export default function PayoutManagementPage() {
                         ZMW {Number(p.expectedAmount).toLocaleString()}
                       </p>
                     </div>
-                    {isApprover && isNext && (
+                    {canDisburse && isNext && (
                       <Button size="sm" onClick={() => disburse(p.id)} loading={disbursing === p.id}>
                         <Banknote size={14} /> Disburse
                       </Button>
@@ -266,7 +270,7 @@ export default function PayoutManagementPage() {
               })}
             </div>
           )}
-          {!isApprover && data.duePayouts.length > 0 && (
+          {!canDisburse && data.duePayouts.length > 0 && (
             <p className="text-xs text-gray-500 dark:text-slate-400 mt-3">
               Only members with the approver permission can trigger disbursements.
             </p>

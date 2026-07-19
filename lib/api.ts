@@ -249,10 +249,10 @@ export const messages = {
 
 // Payments
 export const payments = {
-  deposit: (walletId: string, amount: number, mobileNumber: string) =>
+  deposit: (target: { walletId?: string; groupId?: string }, amount: number, mobileNumber: string) =>
     request<{ success: boolean; message: string; data: { referenceId: string; status: string } }>(
       '/payments/deposit',
-      { method: 'POST', body: JSON.stringify({ walletId, amount, mobileNumber }) }
+      { method: 'POST', body: JSON.stringify({ ...target, amount, mobileNumber }) }
     ),
   methods: () =>
     request<{ success: boolean; data: PaymentMethod[] }>('/payments/methods'),
@@ -290,6 +290,58 @@ export const notifications = {
     request('/notifications/read-all', { method: 'PATCH' }),
   markRead: (id: string) =>
     request(`/notifications/${id}/read`, { method: 'PATCH' }),
+};
+
+// Roles & permissions
+export interface Role {
+  id: string;
+  name: string;
+  scope: 'platform' | 'group';
+  description?: string;
+  isSystem: boolean;
+  permissions: string[];
+}
+
+export interface PermissionCatalogEntry {
+  key: string;
+  label: string;
+}
+
+export interface RoleAssignment {
+  id: string;
+  userId: string;
+  roleId: string;
+  groupId?: string;
+  createdAt: string;
+  userName: string;
+  userEmail: string;
+  roleName: string;
+  roleScope: 'platform' | 'group';
+  groupName?: string;
+}
+
+export const roles = {
+  myPermissions: (groupId?: string) =>
+    request<{ success: boolean; data: string[] }>(
+      `/roles/my-permissions${groupId ? `?groupId=${groupId}` : ''}`),
+  list: () =>
+    request<{ success: boolean; data: { roles: Role[]; catalog: PermissionCatalogEntry[] } }>('/roles'),
+  create: (body: { name: string; scope: 'platform' | 'group'; description?: string; permissions: string[] }) =>
+    request<{ success: boolean; message: string; data: { id: string } }>(
+      '/roles', { method: 'POST', body: JSON.stringify(body) }),
+  update: (roleId: string, body: { description?: string; permissions?: string[] }) =>
+    request<{ success: boolean; message: string }>(
+      `/roles/${roleId}`, { method: 'PATCH', body: JSON.stringify(body) }),
+  remove: (roleId: string) =>
+    request<{ success: boolean; message: string }>(`/roles/${roleId}`, { method: 'DELETE' }),
+  assignments: () =>
+    request<{ success: boolean; data: RoleAssignment[] }>('/roles/assignments'),
+  assign: (roleId: string, email: string, groupId?: string) =>
+    request<{ success: boolean; message: string }>(
+      `/roles/${roleId}/assign`, { method: 'POST', body: JSON.stringify({ email, groupId }) }),
+  revoke: (assignmentId: string) =>
+    request<{ success: boolean; message: string }>(
+      `/roles/assignments/${assignmentId}`, { method: 'DELETE' }),
 };
 
 // Admin

@@ -40,15 +40,17 @@ export default function WalletPage() {
 
   useEffect(() => { load(); }, []);
 
-  // Auto-open deposit for a group wallet when arriving from ?deposit=groupId
+  // Auto-open deposit for a group wallet when arriving from ?deposit=groupId.
+  // If the member has no wallet row for that group yet, the API creates it on deposit.
   useEffect(() => {
     const depositGroupId = searchParams.get('deposit');
-    if (depositGroupId && wallets.length > 0) {
-      const target = wallets.find(w => w.groupId === depositGroupId) ?? wallets.find(w => w.type === 'personal');
-      if (target) openDeposit(target);
+    if (depositGroupId && !loading) {
+      const target = wallets.find(w => w.groupId === depositGroupId)
+        ?? { id: '', type: 'group' as const, groupId: depositGroupId, balance: 0, currency: 'ZMW' };
+      openDeposit(target);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [wallets]);
+  }, [loading]);
 
   const openDeposit = (w: Wallet) => {
     setTargetWallet(w);
@@ -64,7 +66,12 @@ export default function WalletPage() {
     setDepositing(true);
     setDepositResult(null);
     try {
-      const res = await payments.deposit(targetWallet.id, parseFloat(amount), phone);
+      const res = await payments.deposit(
+        targetWallet.type === 'group' && targetWallet.groupId
+          ? { groupId: targetWallet.groupId }
+          : { walletId: targetWallet.id },
+        parseFloat(amount), phone
+      );
       setDepositResult({ success: true, message: res.message });
     } catch (err: unknown) {
       setDepositResult({ success: false, message: err instanceof Error ? err.message : 'Deposit failed' });

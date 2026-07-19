@@ -2,13 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { auth, payments } from '@/lib/api';
-import type { PaymentMethod } from '@/lib/api';
+import { auth, payments, wallet } from '@/lib/api';
+import type { PaymentMethod, Wallet } from '@/lib/api';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
-import { User, Lock, CheckCircle, Smartphone, Building2 } from 'lucide-react';
+import { User, Lock, CheckCircle, Smartphone, Building2, Wallet as WalletIcon, Users } from 'lucide-react';
 
 const PROVIDERS = [
   { value: 'mtn',    label: 'MTN Mobile Money' },
@@ -57,6 +57,12 @@ export default function ProfilePage() {
       setChangingPw(false);
     }
   };
+
+  // Wallet balances
+  const [wallets, setWallets] = useState<Wallet[]>([]);
+  useEffect(() => {
+    wallet.list().then(r => setWallets(r.data)).catch(() => {});
+  }, []);
 
   // Payment methods
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
@@ -133,6 +139,49 @@ export default function ProfilePage() {
             </div>
           </div>
         </div>
+      </Card>
+
+      {/* Balances — total + breakdown per group */}
+      <Card>
+        <h2 className="font-semibold text-gray-900 dark:text-slate-100 mb-4 flex items-center gap-2">
+          <WalletIcon size={18} /> My Balances
+        </h2>
+        <div className="bg-gradient-to-r from-teal-600 to-teal-700 rounded-xl p-4 text-white mb-4">
+          <p className="text-teal-100 text-xs font-medium">Total Balance</p>
+          <p className="text-2xl font-bold mt-0.5">
+            ZMW {wallets.reduce((s, w) => s + w.balance, 0).toLocaleString('en-ZM', { minimumFractionDigits: 2 })}
+          </p>
+        </div>
+        {wallets.length === 0 ? (
+          <p className="text-sm text-gray-500 dark:text-slate-400 text-center py-4">No wallets yet</p>
+        ) : (
+          <div className="space-y-2">
+            {wallets.map(w => (
+              <div key={w.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-slate-700/50 rounded-lg text-sm">
+                <div className="flex items-center gap-3">
+                  <div className={`p-2 rounded-lg ${w.type === 'personal' ? 'bg-teal-100 dark:bg-teal-900/40' : 'bg-purple-100 dark:bg-purple-900/40'}`}>
+                    {w.type === 'personal'
+                      ? <WalletIcon size={15} className="text-teal-600 dark:text-teal-400" />
+                      : <Users      size={15} className="text-purple-600 dark:text-purple-400" />}
+                  </div>
+                  <div>
+                    <p className="font-medium text-gray-900 dark:text-slate-100">
+                      {w.type === 'personal' ? 'Personal Wallet' : (w.groupName ?? 'Group Wallet')}
+                    </p>
+                    {w.monthlyAmount && (
+                      <p className="text-xs text-gray-500 dark:text-slate-400">
+                        Monthly due: {w.currency} {w.monthlyAmount.toLocaleString()}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <span className="font-semibold text-gray-900 dark:text-slate-100">
+                  {w.currency} {w.balance.toLocaleString('en-ZM', { minimumFractionDigits: 2 })}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </Card>
 
       {/* Edit profile */}
