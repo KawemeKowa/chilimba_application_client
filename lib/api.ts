@@ -483,6 +483,9 @@ export interface Wallet {
   currency: string;
   groupId?: string;
   groupName?: string;
+  monthlyAmount?: number;
+  maxMembers?: number;
+  currentCycle?: number;
 }
 
 export interface Transaction {
