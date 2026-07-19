@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { groups } from '@/lib/api';
-import type { GroupDetail, GroupMember, PayoutSchedule } from '@/lib/api';
+import type { GroupDetail, GroupMember } from '@/lib/api';
 import { Input } from '@/components/ui/Input';
 import { Mail } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
@@ -23,10 +23,9 @@ export default function GroupDetailPage() {
   const { user } = useAuth();
   const router = useRouter();
   const [group, setGroup] = useState<GroupDetail | null>(null);
-  const [schedule, setSchedule] = useState<PayoutSchedule[]>([]);
   const [loading, setLoading] = useState(true);
-  const [scheduleOpen, setScheduleOpen] = useState(false);
   const [removing, setRemoving] = useState<string | null>(null);
+  const [togglingPerm, setTogglingPerm] = useState(false);
   const [copied, setCopied] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
@@ -37,12 +36,8 @@ export default function GroupDetailPage() {
 
   const load = async () => {
     try {
-      const [gRes, sRes] = await Promise.all([
-        groups.get(groupId),
-        groups.payoutSchedule(groupId),
-      ]);
+      const gRes = await groups.get(groupId);
       setGroup(gRes.data);
-      setSchedule(sRes.data);
     } finally {
       setLoading(false);
     }
@@ -114,25 +109,18 @@ export default function GroupDetailPage() {
           { href: `/groups/${groupId}/committees`, icon: Gift, label: 'Committees' },
           { href: `/groups/${groupId}/messages`, icon: MessageSquare, label: 'Messages' },
           { href: `/wallet?deposit=${groupId}`, icon: PlusCircle, label: 'Top Up' },
-          { onClick: () => setScheduleOpen(true), icon: List, label: 'Payout Schedule' },
+          { href: `/groups/${groupId}/payouts`, icon: List, label: 'Payouts' },
         ].map((action, i) => (
-          action.href ? (
-            <Link key={i} href={action.href}>
-              <div className={`bg-white dark:bg-slate-800 border rounded-xl p-4 text-center hover:shadow-sm transition-all cursor-pointer ${
-                action.label === 'Top Up'
-                  ? 'border-teal-200 dark:border-teal-700 bg-teal-50 dark:bg-teal-900/20 hover:border-teal-400'
-                  : 'border-gray-100 dark:border-slate-700 hover:border-teal-200 dark:hover:border-teal-700'
-              }`}>
-                <action.icon size={22} className={action.label === 'Top Up' ? 'text-teal-600 dark:text-teal-400 mx-auto mb-2' : 'text-teal-600 dark:text-teal-400 mx-auto mb-2'} />
-                <p className={`text-sm font-medium ${action.label === 'Top Up' ? 'text-teal-700 dark:text-teal-300' : 'text-gray-700 dark:text-slate-300'}`}>{action.label}</p>
-              </div>
-            </Link>
-          ) : (
-            <div key={i} onClick={action.onClick} className="bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700 rounded-xl p-4 text-center hover:border-teal-200 dark:hover:border-teal-700 hover:shadow-sm transition-all cursor-pointer">
+          <Link key={i} href={action.href}>
+            <div className={`bg-white dark:bg-slate-800 border rounded-xl p-4 text-center hover:shadow-sm transition-all cursor-pointer ${
+              action.label === 'Top Up'
+                ? 'border-teal-200 dark:border-teal-700 bg-teal-50 dark:bg-teal-900/20 hover:border-teal-400'
+                : 'border-gray-100 dark:border-slate-700 hover:border-teal-200 dark:hover:border-teal-700'
+            }`}>
               <action.icon size={22} className="text-teal-600 dark:text-teal-400 mx-auto mb-2" />
-              <p className="text-sm font-medium text-gray-700 dark:text-slate-300">{action.label}</p>
+              <p className={`text-sm font-medium ${action.label === 'Top Up' ? 'text-teal-700 dark:text-teal-300' : 'text-gray-700 dark:text-slate-300'}`}>{action.label}</p>
             </div>
-          )
+          </Link>
         ))}
       </div>
 
@@ -235,30 +223,6 @@ export default function GroupDetailPage() {
         </Card>
       </div>
 
-      {/* Payout schedule modal */}
-      <Modal open={scheduleOpen} onClose={() => setScheduleOpen(false)} title="Payout Schedule" size="lg">
-        <div className="space-y-2 max-h-96 overflow-y-auto">
-          {schedule.length === 0 ? (
-            <p className="text-center text-gray-500 dark:text-slate-400 py-8">No schedule available yet</p>
-          ) : (
-            schedule.map((s, i) => (
-              <div key={i} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-slate-700/50 rounded-lg text-sm">
-                <div>
-                  <p className="font-medium text-gray-900 dark:text-slate-100">
-                    Cycle {s.cycleNumber} · #{s.payoutOrder} – {s.firstName} {s.lastName}
-                  </p>
-                  <p className="text-gray-500 dark:text-slate-400">{new Date(s.scheduledDate).toLocaleDateString()}</p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="font-semibold text-gray-900 dark:text-slate-100">ZMW {(s.expectedAmount ?? 0).toLocaleString()}</span>
-                  <Badge label={s.status} variant={statusVariant(s.status)} />
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      </Modal>
-
       {/* Member profile modal */}
       <Modal
         open={!!profileMember}
@@ -297,6 +261,45 @@ export default function GroupDetailPage() {
                 {profileMember.payoutOrder && <span>· Payout #{profileMember.payoutOrder}</span>}
               </div>
             </div>
+
+            {/* Approver permission (group admins only; owner always keeps it) */}
+            {isAdmin && (
+              <div className="pt-3 border-t border-gray-100 dark:border-slate-700 flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-900 dark:text-slate-100">Approver permission</p>
+                  <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">
+                    Can change the payout order and trigger disbursements
+                  </p>
+                </div>
+                {profileMember.role === 'owner' ? (
+                  <Badge label="Always approver" variant="info" />
+                ) : (
+                  <Button
+                    size="sm"
+                    variant={profileMember.permissions?.includes('approver') ? 'secondary' : 'primary'}
+                    loading={togglingPerm}
+                    onClick={async () => {
+                      setTogglingPerm(true);
+                      try {
+                        const has = profileMember.permissions?.includes('approver') ?? false;
+                        await groups.setPermission(groupId, profileMember.userId, 'approver', !has);
+                        setProfileMember({
+                          ...profileMember,
+                          permissions: has
+                            ? (profileMember.permissions ?? []).filter(p => p !== 'approver')
+                            : [...(profileMember.permissions ?? []), 'approver'],
+                        });
+                        load();
+                      } finally {
+                        setTogglingPerm(false);
+                      }
+                    }}
+                  >
+                    {profileMember.permissions?.includes('approver') ? 'Revoke approver' : 'Grant approver'}
+                  </Button>
+                )}
+              </div>
+            )}
           </div>
         )}
       </Modal>
