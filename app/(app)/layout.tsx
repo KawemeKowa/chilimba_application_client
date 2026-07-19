@@ -21,10 +21,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   if (loading || !user) return <PageSpinner />;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-900">
       <Navbar onMenuToggle={() => setSidebarOpen(true)} />
       {user.status === 'pending_verification' && (
-        <div className="bg-amber-400 text-white px-6 py-3 flex items-center justify-between">
+        <div className="bg-amber-400 dark:bg-amber-600 text-white px-6 py-3 flex items-center justify-between">
           <div>
             <span className="font-medium">Status: </span>
             <span>Your account is pending verification by our team. Ensure your profile is complete to speed up the process.</span>
