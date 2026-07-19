@@ -1,13 +1,20 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { auth } from '@/lib/api';
+import { auth, payments } from '@/lib/api';
+import type { PaymentMethod } from '@/lib/api';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
-import { User, Lock, CheckCircle } from 'lucide-react';
+import { User, Lock, CheckCircle, Smartphone, Building2 } from 'lucide-react';
+
+const PROVIDERS = [
+  { value: 'mtn',    label: 'MTN Mobile Money' },
+  { value: 'airtel', label: 'Airtel Money' },
+  { value: 'zamtel', label: 'Zamtel Kwacha' },
+] as const;
 
 export default function ProfilePage() {
   const { user, refresh } = useAuth();
@@ -49,6 +56,49 @@ export default function ProfilePage() {
     } finally {
       setChangingPw(false);
     }
+  };
+
+  // Payment methods
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
+  const [momoForm, setMomoForm] = useState({ mobileNumber: '', provider: 'mtn' as 'mtn' | 'airtel' | 'zamtel' });
+  const [bankForm, setBankForm] = useState({ bankName: '', accountNumber: '', accountName: '', branch: '' });
+  const [savingMomo, setSavingMomo] = useState(false);
+  const [savingBank, setSavingBank] = useState(false);
+  const [momoMsg, setMomoMsg] = useState('');
+  const [bankMsg, setBankMsg] = useState('');
+
+  useEffect(() => {
+    payments.methods().then(r => {
+      setPaymentMethods(r.data);
+      const momo = r.data.find(m => m.type === 'mobile_money');
+      const bank = r.data.find(m => m.type === 'bank');
+      if (momo) setMomoForm({ mobileNumber: momo.mobileNumber || '', provider: (momo.mobileProvider as 'mtn' | 'airtel' | 'zamtel') || 'mtn' });
+      if (bank) setBankForm({ bankName: bank.bankName || '', accountNumber: bank.accountNumber || '', accountName: bank.accountName || '', branch: bank.branch || '' });
+    }).catch(() => {});
+  }, []);
+
+  const handleSaveMomo = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingMomo(true);
+    setMomoMsg('');
+    try {
+      await payments.saveMobileMoney(momoForm.mobileNumber, momoForm.provider);
+      setMomoMsg('Mobile money details saved.');
+    } catch (err: unknown) {
+      setMomoMsg(err instanceof Error ? err.message : 'Failed to save');
+    } finally { setSavingMomo(false); }
+  };
+
+  const handleSaveBank = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingBank(true);
+    setBankMsg('');
+    try {
+      await payments.saveBankDetails(bankForm.bankName, bankForm.accountNumber, bankForm.accountName, bankForm.branch);
+      setBankMsg('Bank details saved.');
+    } catch (err: unknown) {
+      setBankMsg(err instanceof Error ? err.message : 'Failed to save');
+    } finally { setSavingBank(false); }
   };
 
   const roleColors: Record<string, string> = {
@@ -119,6 +169,60 @@ export default function ProfilePage() {
           <Input label="New password" type="password" value={pwForm.newPassword} onChange={e => setPwForm(f => ({ ...f, newPassword: e.target.value }))} required />
           <Input label="Confirm new password" type="password" value={pwForm.confirm} onChange={e => setPwForm(f => ({ ...f, confirm: e.target.value }))} required />
           <Button type="submit" loading={changingPw}>Change Password</Button>
+        </form>
+      </Card>
+
+      {/* Mobile money */}
+      <Card>
+        <h2 className="font-semibold text-gray-900 mb-1 flex items-center gap-2"><Smartphone size={18} /> Mobile Money</h2>
+        <p className="text-sm text-gray-500 mb-4">Used to receive payouts and top up your wallet.</p>
+        {momoMsg && (
+          <div className={`mb-4 p-3 rounded-lg text-sm flex items-center gap-2 ${momoMsg.includes('saved') ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600'}`}>
+            {momoMsg.includes('saved') && <CheckCircle size={16} />}
+            {momoMsg}
+          </div>
+        )}
+        <form onSubmit={handleSaveMomo} className="space-y-4">
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium text-gray-700">Provider</label>
+            <select
+              value={momoForm.provider}
+              onChange={e => setMomoForm(f => ({ ...f, provider: e.target.value as 'mtn' | 'airtel' | 'zamtel' }))}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white"
+            >
+              {PROVIDERS.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
+            </select>
+          </div>
+          <Input
+            label="Mobile number"
+            type="tel"
+            value={momoForm.mobileNumber}
+            onChange={e => setMomoForm(f => ({ ...f, mobileNumber: e.target.value }))}
+            placeholder="260971234567"
+            required
+          />
+          <Button type="submit" loading={savingMomo}>Save Mobile Money</Button>
+        </form>
+      </Card>
+
+      {/* Bank details */}
+      <Card>
+        <h2 className="font-semibold text-gray-900 mb-1 flex items-center gap-2"><Building2 size={18} /> Bank Account</h2>
+        <p className="text-sm text-gray-500 mb-4">For direct bank transfer payouts.</p>
+        {bankMsg && (
+          <div className={`mb-4 p-3 rounded-lg text-sm flex items-center gap-2 ${bankMsg.includes('saved') ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600'}`}>
+            {bankMsg.includes('saved') && <CheckCircle size={16} />}
+            {bankMsg}
+          </div>
+        )}
+        <form onSubmit={handleSaveBank} className="space-y-4">
+          <Input label="Bank name" value={bankForm.bankName} onChange={e => setBankForm(f => ({ ...f, bankName: e.target.value }))} placeholder="e.g. Zanaco, Stanbic, FNB" required />
+          <div className="grid grid-cols-2 gap-4">
+            <Input label="Account number" value={bankForm.accountNumber} onChange={e => setBankForm(f => ({ ...f, accountNumber: e.target.value }))} required />
+            <Input label="Account name" value={bankForm.accountName} onChange={e => setBankForm(f => ({ ...f, accountName: e.target.value }))} required />
+          </div>
+          <Input label="Branch (optional)" value={bankForm.branch} onChange={e => setBankForm(f => ({ ...f, branch: e.target.value }))} />
+          <Button type="submit" loading={savingBank}>Save Bank Details</Button>
         </form>
       </Card>
     </div>

@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import {
   LayoutDashboard, Wallet, Users, ArrowLeftRight,
   CheckSquare, Settings, X, Shield, BarChart3,
-  Bell, UserCircle, TrendingUp
+  Bell, UserCircle, TrendingUp, Banknote
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -40,6 +40,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
   const superAdminLinks = [
     { href: '/superadmin', icon: TrendingUp, label: 'Overview' },
     { href: '/superadmin/analytics', icon: BarChart3, label: 'Analytics' },
+    { href: '/superadmin/finance', icon: Banknote, label: 'Finance' },
     { href: '/superadmin/settings', icon: Settings, label: 'Settings' },
     { href: '/superadmin/admins', icon: Shield, label: 'Admins' },
     { href: '/superadmin/audit', icon: CheckSquare, label: 'Audit Logs' },
