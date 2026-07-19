@@ -109,7 +109,62 @@ export const groups = {
     request(`/groups/${groupId}/members/${userId}`, { method: 'DELETE' }),
   invite: (groupId: string, email: string) =>
     request(`/groups/${groupId}/invite`, { method: 'POST', body: JSON.stringify({ email }) }),
+  payoutOrder: (groupId: string) =>
+    request<{ success: boolean; data: PayoutOrderData }>(`/groups/${groupId}/payout-order`),
+  proposePayoutOrder: (groupId: string, body: { newOrder?: { userId: string; payoutOrder: number }[]; alphabetical?: boolean }) =>
+    request<{ success: boolean; message: string; data: { applied: boolean; proposalId?: string; approvalsNeeded?: number } }>(
+      `/groups/${groupId}/payout-order`, { method: 'POST', body: JSON.stringify(body) }),
+  votePayoutOrder: (groupId: string, proposalId: string, action: 'approved' | 'rejected') =>
+    request<{ success: boolean; message: string }>(
+      `/groups/${groupId}/payout-order/${proposalId}/vote`, { method: 'POST', body: JSON.stringify({ action }) }),
+  setPermission: (groupId: string, userId: string, permission: 'approver', grant: boolean) =>
+    request<{ success: boolean; message: string }>(
+      `/groups/${groupId}/members/${userId}/permissions`, { method: 'POST', body: JSON.stringify({ permission, grant }) }),
+  disbursePayout: (groupId: string, payoutScheduleId: string) =>
+    request<{ success: boolean; message: string; data: { netPayout: number; feeCharged: number } }>(
+      `/groups/${groupId}/payouts/${payoutScheduleId}/disburse`, { method: 'POST' }),
 };
+
+export interface PayoutOrderMember {
+  userId: string;
+  payoutOrder: number | null;
+  permissions: string[];
+  role: string;
+  firstName: string;
+  lastName: string;
+}
+
+export interface DuePayout {
+  id: string;
+  userId: string;
+  cycleNumber: number;
+  payoutOrder: number;
+  scheduledDate: string;
+  expectedAmount: number;
+  status: string;
+  firstName: string;
+  lastName: string;
+}
+
+export interface PayoutOrderProposal {
+  id: string;
+  proposedBy: string;
+  proposerName: string;
+  newOrder: { userId: string; payoutOrder: number }[];
+  status: string;
+  approvalsNeeded: number;
+  approvalsCount: number;
+  createdAt: string;
+  votes: { approverId: string; action: string }[];
+}
+
+export interface PayoutOrderData {
+  members: PayoutOrderMember[];
+  duePayouts: DuePayout[];
+  pendingProposal: PayoutOrderProposal | null;
+  myPermissions: string[];
+  myRole: string;
+}
 
 // Invitations
 export const invitations = {
@@ -194,10 +249,14 @@ export const messages = {
 
 // Payments
 export const payments = {
-  deposit: (walletId: string, amount: number, mobileNumber: string) =>
-    request<{ success: boolean; message: string; data: { referenceId: string; status: string } }>(
+  deposit: (
+    target: { walletId?: string; groupId?: string },
+    amount: number,
+    opts: { method: 'mobile_money'; mobileNumber: string } | { method: 'card' }
+  ) =>
+    request<{ success: boolean; message: string; data: { referenceId: string; status: string; paymentUrl?: string | null } }>(
       '/payments/deposit',
-      { method: 'POST', body: JSON.stringify({ walletId, amount, mobileNumber }) }
+      { method: 'POST', body: JSON.stringify({ ...target, amount, ...opts }) }
     ),
   methods: () =>
     request<{ success: boolean; data: PaymentMethod[] }>('/payments/methods'),
@@ -235,6 +294,58 @@ export const notifications = {
     request('/notifications/read-all', { method: 'PATCH' }),
   markRead: (id: string) =>
     request(`/notifications/${id}/read`, { method: 'PATCH' }),
+};
+
+// Roles & permissions
+export interface Role {
+  id: string;
+  name: string;
+  scope: 'platform' | 'group';
+  description?: string;
+  isSystem: boolean;
+  permissions: string[];
+}
+
+export interface PermissionCatalogEntry {
+  key: string;
+  label: string;
+}
+
+export interface RoleAssignment {
+  id: string;
+  userId: string;
+  roleId: string;
+  groupId?: string;
+  createdAt: string;
+  userName: string;
+  userEmail: string;
+  roleName: string;
+  roleScope: 'platform' | 'group';
+  groupName?: string;
+}
+
+export const roles = {
+  myPermissions: (groupId?: string) =>
+    request<{ success: boolean; data: string[] }>(
+      `/roles/my-permissions${groupId ? `?groupId=${groupId}` : ''}`),
+  list: () =>
+    request<{ success: boolean; data: { roles: Role[]; catalog: PermissionCatalogEntry[] } }>('/roles'),
+  create: (body: { name: string; scope: 'platform' | 'group'; description?: string; permissions: string[] }) =>
+    request<{ success: boolean; message: string; data: { id: string } }>(
+      '/roles', { method: 'POST', body: JSON.stringify(body) }),
+  update: (roleId: string, body: { description?: string; permissions?: string[] }) =>
+    request<{ success: boolean; message: string }>(
+      `/roles/${roleId}`, { method: 'PATCH', body: JSON.stringify(body) }),
+  remove: (roleId: string) =>
+    request<{ success: boolean; message: string }>(`/roles/${roleId}`, { method: 'DELETE' }),
+  assignments: () =>
+    request<{ success: boolean; data: RoleAssignment[] }>('/roles/assignments'),
+  assign: (roleId: string, email: string, groupId?: string) =>
+    request<{ success: boolean; message: string }>(
+      `/roles/${roleId}/assign`, { method: 'POST', body: JSON.stringify({ email, groupId }) }),
+  revoke: (assignmentId: string) =>
+    request<{ success: boolean; message: string }>(
+      `/roles/assignments/${assignmentId}`, { method: 'DELETE' }),
 };
 
 // Admin
@@ -389,6 +500,7 @@ export interface GroupMember {
   role: string;
   joinedAt: string;
   payoutOrder?: number;
+  permissions?: string[];
 }
 
 export interface PayoutSchedule {
