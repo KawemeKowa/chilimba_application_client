@@ -265,13 +265,18 @@ export const payments = {
       method: 'PUT',
       body: JSON.stringify({ mobileNumber, provider }),
     }),
-  saveBankDetails: (bankName: string, accountNumber: string, accountName: string, branch?: string) =>
+  saveBankDetails: (bankName: string, accountNumber: string, accountName: string, branch?: string, swiftCode?: string) =>
     request('/payments/methods/bank', {
       method: 'PUT',
-      body: JSON.stringify({ bankName, accountNumber, accountName, branch }),
+      body: JSON.stringify({ bankName, accountNumber, accountName, branch, swiftCode }),
     }),
   history: () =>
     request<{ success: boolean; data: LipilaTransaction[] }>('/payments/history'),
+  syncStatus: (referenceId: string) =>
+    request<{ success: boolean; message: string; data: { status: string } }>('/payments/sync-status', {
+      method: 'POST',
+      body: JSON.stringify({ referenceId }),
+    }),
 };
 
 // Wallet
@@ -709,6 +714,7 @@ export interface PaymentMethod {
   accountNumber?: string;
   accountName?: string;
   branch?: string;
+  swiftCode?: string;
   isDefault: boolean;
   createdAt: string;
   updatedAt: string;

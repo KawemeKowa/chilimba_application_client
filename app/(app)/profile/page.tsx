@@ -67,7 +67,7 @@ export default function ProfilePage() {
   // Payment methods
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [momoForm, setMomoForm] = useState({ mobileNumber: '', provider: 'mtn' as 'mtn' | 'airtel' | 'zamtel' });
-  const [bankForm, setBankForm] = useState({ bankName: '', accountNumber: '', accountName: '', branch: '' });
+  const [bankForm, setBankForm] = useState({ bankName: '', accountNumber: '', accountName: '', branch: '', swiftCode: '' });
   const [savingMomo, setSavingMomo] = useState(false);
   const [savingBank, setSavingBank] = useState(false);
   const [momoMsg, setMomoMsg] = useState('');
@@ -79,7 +79,7 @@ export default function ProfilePage() {
       const momo = r.data.find(m => m.type === 'mobile_money');
       const bank = r.data.find(m => m.type === 'bank');
       if (momo) setMomoForm({ mobileNumber: momo.mobileNumber || '', provider: (momo.mobileProvider as 'mtn' | 'airtel' | 'zamtel') || 'mtn' });
-      if (bank) setBankForm({ bankName: bank.bankName || '', accountNumber: bank.accountNumber || '', accountName: bank.accountName || '', branch: bank.branch || '' });
+      if (bank) setBankForm({ bankName: bank.bankName || '', accountNumber: bank.accountNumber || '', accountName: bank.accountName || '', branch: bank.branch || '', swiftCode: bank.swiftCode || '' });
     }).catch(() => {});
   }, []);
 
@@ -100,7 +100,7 @@ export default function ProfilePage() {
     setSavingBank(true);
     setBankMsg('');
     try {
-      await payments.saveBankDetails(bankForm.bankName, bankForm.accountNumber, bankForm.accountName, bankForm.branch);
+      await payments.saveBankDetails(bankForm.bankName, bankForm.accountNumber, bankForm.accountName, bankForm.branch, bankForm.swiftCode);
       setBankMsg('Bank details saved.');
     } catch (err: unknown) {
       setBankMsg(err instanceof Error ? err.message : 'Failed to save');
@@ -270,7 +270,11 @@ export default function ProfilePage() {
             <Input label="Account number" value={bankForm.accountNumber} onChange={e => setBankForm(f => ({ ...f, accountNumber: e.target.value }))} required />
             <Input label="Account name" value={bankForm.accountName} onChange={e => setBankForm(f => ({ ...f, accountName: e.target.value }))} required />
           </div>
-          <Input label="Branch (optional)" value={bankForm.branch} onChange={e => setBankForm(f => ({ ...f, branch: e.target.value }))} />
+          <div className="grid grid-cols-2 gap-4">
+            <Input label="Branch (optional)" value={bankForm.branch} onChange={e => setBankForm(f => ({ ...f, branch: e.target.value }))} />
+            <Input label="SWIFT/BIC code" value={bankForm.swiftCode} onChange={e => setBankForm(f => ({ ...f, swiftCode: e.target.value }))} placeholder="e.g. ZNCOZMLU" required />
+          </div>
+          <p className="text-xs text-gray-500">Required to receive payouts by bank transfer. Ask your bank if you don&apos;t know your SWIFT code.</p>
           <Button type="submit" loading={savingBank}>Save Bank Details</Button>
         </form>
       </Card>
