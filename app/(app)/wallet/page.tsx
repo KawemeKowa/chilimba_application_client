@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { PageSpinner } from '@/components/ui/Spinner';
 import { Badge } from '@/components/ui/Badge';
-import { Wallet as WalletIcon, Users, TrendingUp, Plus, CheckCircle, Clock, XCircle, Smartphone, CreditCard } from 'lucide-react';
+import { Wallet as WalletIcon, Users, TrendingUp, Plus, CheckCircle, Clock, XCircle, Smartphone, CreditCard, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 
 function statusIcon(status: string) {
@@ -26,6 +26,7 @@ export default function WalletPage() {
   const [loading, setLoading]       = useState(true);
   const [depositOpen, setDepositOpen] = useState(false);
   const [targetWallet, setTargetWallet] = useState<Wallet | null>(null);
+  const [syncingId, setSyncingId] = useState<string | null>(null);
 
   const [amount, setAmount]           = useState('');
   const [phone, setPhone]             = useState('');
@@ -168,12 +169,28 @@ export default function WalletPage() {
                     </p>
                   </div>
                 </div>
-                <div className="text-right">
-                  <p className="font-semibold text-gray-900 dark:text-slate-100">ZMW {Number(t.amount).toLocaleString()}</p>
-                  <Badge
-                    label={t.status}
-                    variant={t.status === 'successful' ? 'success' : t.status === 'failed' ? 'danger' : 'warning'}
-                  />
+                <div className="flex items-center gap-2">
+                  <div className="text-right">
+                    <p className="font-semibold text-gray-900 dark:text-slate-100">ZMW {Number(t.amount).toLocaleString()}</p>
+                    <Badge
+                      label={t.status}
+                      variant={t.status === 'successful' ? 'success' : t.status === 'failed' ? 'danger' : 'warning'}
+                    />
+                  </div>
+                  {t.status === 'pending' && (
+                    <button
+                      title="Check latest status"
+                      disabled={syncingId === t.referenceId}
+                      onClick={async () => {
+                        setSyncingId(t.referenceId);
+                        try { await payments.syncStatus(t.referenceId); await load(); }
+                        finally { setSyncingId(null); }
+                      }}
+                      className="p-1.5 text-gray-400 hover:text-teal-600 hover:bg-gray-100 dark:hover:bg-slate-600 rounded cursor-pointer disabled:opacity-40"
+                    >
+                      <RefreshCw size={14} className={syncingId === t.referenceId ? 'animate-spin' : ''} />
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
