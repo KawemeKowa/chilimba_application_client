@@ -493,6 +493,7 @@ export interface Group {
 
 export interface GroupDetail extends Group {
   members: GroupMember[];
+  myWalletBalance: number;
 }
 
 export interface GroupMember {
