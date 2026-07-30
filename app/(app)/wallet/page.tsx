@@ -19,6 +19,20 @@ function statusIcon(status: string) {
   return                              <Clock       size={14} className="text-amber-500" />;
 }
 
+// Opening window.open with explicit width/height (rather than just '_blank')
+// makes browsers render it as a separate popup window instead of a new tab.
+function openCheckoutPopup(url: string) {
+  const width = 480;
+  const height = 720;
+  const left = window.screenX + Math.max(0, (window.outerWidth - width) / 2);
+  const top = window.screenY + Math.max(0, (window.outerHeight - height) / 2);
+  window.open(
+    url,
+    'lipila-card-checkout',
+    `width=${width},height=${height},left=${left},top=${top},noopener,noreferrer,popup=yes`
+  );
+}
+
 export default function WalletPage() {
   const searchParams = useSearchParams();
   const [wallets, setWallets]       = useState<Wallet[]>([]);
@@ -78,7 +92,7 @@ export default function WalletPage() {
       );
       setDepositResult({ success: true, message: res.message, paymentUrl: res.data.paymentUrl });
       // Card payments complete on Lipila's secure hosted checkout page
-      if (res.data.paymentUrl) window.open(res.data.paymentUrl, '_blank', 'noopener');
+      if (res.data.paymentUrl) openCheckoutPopup(res.data.paymentUrl);
     } catch (err: unknown) {
       setDepositResult({ success: false, message: err instanceof Error ? err.message : 'Deposit failed' });
     } finally {
@@ -214,11 +228,16 @@ export default function WalletPage() {
             {depositResult.paymentUrl ? (
               <>
                 <p className="text-xs text-gray-400 dark:text-slate-500 mb-3">
-                  A secure checkout page has opened in a new tab. If it didn&apos;t, use the button below.
+                  A secure checkout window has opened. If it didn&apos;t (or your browser blocked the popup), use the button below.
                 </p>
-                <a href={depositResult.paymentUrl} target="_blank" rel="noopener noreferrer">
-                  <Button variant="outline" className="w-full"><CreditCard size={14} /> Open Card Checkout</Button>
-                </a>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => depositResult.paymentUrl && openCheckoutPopup(depositResult.paymentUrl)}
+                >
+                  <CreditCard size={14} /> Open Card Checkout
+                </Button>
               </>
             ) : (
               <p className="text-xs text-gray-400 dark:text-slate-500">Your balance will update automatically once you confirm the payment on your phone.</p>
