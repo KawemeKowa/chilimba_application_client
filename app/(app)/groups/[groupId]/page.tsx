@@ -101,6 +101,26 @@ export default function GroupDetailPage() {
         </div>
       </div>
 
+      {/* My balance in this group */}
+      <div className="bg-gradient-to-r from-teal-600 to-teal-700 rounded-2xl p-6 text-white flex items-center justify-between flex-wrap gap-4">
+        <div>
+          <p className="text-teal-100 text-sm font-medium">Your Balance in {group.name}</p>
+          <p className="text-3xl font-bold mt-1">
+            {group.currency ?? 'ZMW'} {group.myWalletBalance.toLocaleString('en-ZM', { minimumFractionDigits: 2 })}
+          </p>
+          {group.monthlyAmount ? (
+            <p className="text-teal-200 text-sm mt-1">
+              {group.myWalletBalance >= group.monthlyAmount
+                ? `${Math.floor(group.myWalletBalance / group.monthlyAmount)} month${Math.floor(group.myWalletBalance / group.monthlyAmount) !== 1 ? 's' : ''} covered`
+                : `Monthly due: ${group.currency ?? 'ZMW'} ${group.monthlyAmount.toLocaleString()} — top up needed`}
+            </p>
+          ) : null}
+        </div>
+        <Link href={`/wallet?deposit=${groupId}`}>
+          <Button variant="secondary" size="sm"><PlusCircle size={14} /> Top Up</Button>
+        </Link>
+      </div>
+
       {/* Quick actions */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         {[
