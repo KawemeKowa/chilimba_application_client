@@ -30,7 +30,7 @@ export default function DashboardPage() {
 
   if (loading) return <PageSpinner />;
 
-  const totalBalance = wallets.reduce((sum, w) => sum + w.balance, 0);
+  const totalBalance = wallets.reduce((sum, w) => sum + Number(w.balance), 0);
   const personalWallet = wallets.find(w => w.type === 'personal');
 
   return (

@@ -149,7 +149,7 @@ export default function ProfilePage() {
         <div className="bg-gradient-to-r from-teal-600 to-teal-700 rounded-xl p-4 text-white mb-4">
           <p className="text-teal-100 text-xs font-medium">Total Balance</p>
           <p className="text-2xl font-bold mt-0.5">
-            ZMW {wallets.reduce((s, w) => s + w.balance, 0).toLocaleString('en-ZM', { minimumFractionDigits: 2 })}
+            ZMW {wallets.reduce((s, w) => s + Number(w.balance), 0).toLocaleString('en-ZM', { minimumFractionDigits: 2 })}
           </p>
         </div>
         {wallets.length === 0 ? (

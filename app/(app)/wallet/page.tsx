@@ -68,6 +68,16 @@ export default function WalletPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading]);
 
+  // When the card-checkout popup returns, it posts a message — refresh the
+  // wallet + history so the pending/successful/failed status shows immediately.
+  useEffect(() => {
+    const onMessage = (e: MessageEvent) => {
+      if (e.data?.type === 'chilimba:payment-return') load();
+    };
+    window.addEventListener('message', onMessage);
+    return () => window.removeEventListener('message', onMessage);
+  }, []);
+
   const openDeposit = (w: Wallet) => {
     setTargetWallet(w);
     setAmount('');
@@ -102,7 +112,7 @@ export default function WalletPage() {
 
   if (loading) return <PageSpinner />;
 
-  const total = wallets.reduce((sum, w) => sum + w.balance, 0);
+  const total = wallets.reduce((sum, w) => sum + Number(w.balance), 0);
 
   const monthly = targetWallet?.monthlyAmount ?? 0;
   const preloadOptions = monthly > 0
@@ -220,15 +230,19 @@ export default function WalletPage() {
       >
         {depositResult?.success ? (
           <div className="text-center py-4">
-            <CheckCircle className="mx-auto mb-4 text-teal-600" size={48} />
+            {depositResult.paymentUrl
+              ? <Clock className="mx-auto mb-4 text-amber-500" size={48} />
+              : <CheckCircle className="mx-auto mb-4 text-teal-600" size={48} />}
             <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-100 mb-2">
-              {depositResult.paymentUrl ? 'Card payment created!' : 'Payment request sent!'}
+              {depositResult.paymentUrl ? 'Complete your card payment' : 'Payment request sent!'}
             </h3>
-            <p className="text-sm text-gray-600 dark:text-slate-400 mb-6">{depositResult.message}</p>
             {depositResult.paymentUrl ? (
               <>
+                <p className="text-sm text-gray-600 dark:text-slate-400 mb-4">
+                  A secure checkout window has opened — enter your card details there to finish paying.
+                </p>
                 <p className="text-xs text-gray-400 dark:text-slate-500 mb-3">
-                  A secure checkout window has opened. If it didn&apos;t (or your browser blocked the popup), use the button below.
+                  Your wallet stays unchanged until the payment is confirmed. If the window didn&apos;t open (or your browser blocked the popup), use the button below.
                 </p>
                 <Button
                   type="button"
@@ -240,7 +254,10 @@ export default function WalletPage() {
                 </Button>
               </>
             ) : (
-              <p className="text-xs text-gray-400 dark:text-slate-500">Your balance will update automatically once you confirm the payment on your phone.</p>
+              <>
+                <p className="text-sm text-gray-600 dark:text-slate-400 mb-6">{depositResult.message}</p>
+                <p className="text-xs text-gray-400 dark:text-slate-500">Your balance will update automatically once you confirm the payment on your phone.</p>
+              </>
             )}
             <Button className="mt-6 w-full" onClick={() => { setDepositOpen(false); load(); }}>Done</Button>
           </div>
