@@ -46,7 +46,11 @@ export default function WalletPage() {
   const [phone, setPhone]             = useState('');
   const [method, setMethod]           = useState<'mobile_money' | 'card'>('mobile_money');
   const [depositing, setDepositing]   = useState(false);
-  const [depositResult, setDepositResult] = useState<{ success: boolean; message: string; paymentUrl?: string | null } | null>(null);
+  const [depositResult, setDepositResult] = useState<
+    { success: boolean; message: string; paymentUrl?: string | null; resolvedStatus?: 'successful' | 'failed' } | null
+  >(null);
+  // Reference of an in-flight card payment we're polling for a final outcome.
+  const [pendingRef, setPendingRef] = useState<string | null>(null);
 
   const load = () =>
     Promise.all([
@@ -68,15 +72,49 @@ export default function WalletPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading]);
 
-  // When the card-checkout popup returns, it posts a message — refresh the
-  // wallet + history so the pending/successful/failed status shows immediately.
+  // While a card payment is in flight, poll our own transaction history for
+  // the final outcome (the webhook resolves it server-side). When it lands,
+  // update the modal to a success/failed state so the user doesn't have to
+  // guess or click around. The popup's return message triggers an early check.
   useEffect(() => {
+    if (!pendingRef) return;
+    let active = true;
+
+    const check = async () => {
+      try {
+        const r = await payments.history();
+        if (!active) return;
+        setHistory(r.data);
+        const txn = r.data.find(t => t.referenceId === pendingRef);
+        if (txn && txn.status !== 'pending') {
+          setDepositResult({
+            success: txn.status === 'successful',
+            message: txn.status === 'successful'
+              ? 'Your wallet has been topped up.'
+              : 'The card payment did not go through.',
+            resolvedStatus: txn.status === 'successful' ? 'successful' : 'failed',
+          });
+          setPendingRef(null);
+          wallet.list().then(res => { if (active) setWallets(res.data); }).catch(() => {});
+        }
+      } catch { /* keep polling */ }
+    };
+
+    const interval = setInterval(check, 3000);
     const onMessage = (e: MessageEvent) => {
-      if (e.data?.type === 'chilimba:payment-return') load();
+      if (e.data?.type === 'chilimba:payment-return') check();
     };
     window.addEventListener('message', onMessage);
-    return () => window.removeEventListener('message', onMessage);
-  }, []);
+    // Stop polling after 5 minutes regardless, to avoid an endless loop.
+    const stopAt = setTimeout(() => setPendingRef(null), 5 * 60 * 1000);
+
+    return () => {
+      active = false;
+      clearInterval(interval);
+      clearTimeout(stopAt);
+      window.removeEventListener('message', onMessage);
+    };
+  }, [pendingRef]);
 
   const openDeposit = (w: Wallet) => {
     setTargetWallet(w);
@@ -84,7 +122,14 @@ export default function WalletPage() {
     setPhone('');
     setMethod('mobile_money');
     setDepositResult(null);
+    setPendingRef(null);
     setDepositOpen(true);
+  };
+
+  const closeDeposit = () => {
+    setDepositOpen(false);
+    setPendingRef(null);
+    load();
   };
 
   const handleDeposit = async (e: React.FormEvent) => {
@@ -101,8 +146,13 @@ export default function WalletPage() {
         method === 'card' ? { method: 'card' } : { method: 'mobile_money', mobileNumber: phone }
       );
       setDepositResult({ success: true, message: res.message, paymentUrl: res.data.paymentUrl });
-      // Card payments complete on Lipila's secure hosted checkout page
-      if (res.data.paymentUrl) openCheckoutPopup(res.data.paymentUrl);
+      // Card payments complete on Lipila's secure hosted checkout page — open
+      // the popup and start polling for the final outcome so the modal can
+      // update itself to success/failed without the user doing anything.
+      if (res.data.paymentUrl) {
+        openCheckoutPopup(res.data.paymentUrl);
+        setPendingRef(res.data.referenceId);
+      }
     } catch (err: unknown) {
       setDepositResult({ success: false, message: err instanceof Error ? err.message : 'Deposit failed' });
     } finally {
@@ -225,41 +275,62 @@ export default function WalletPage() {
       {/* Deposit modal */}
       <Modal
         open={depositOpen}
-        onClose={() => { setDepositOpen(false); if (depositResult?.success) load(); }}
+        onClose={closeDeposit}
         title={`Top Up — ${targetWallet?.type === 'personal' ? 'Personal Wallet' : (targetWallet?.groupName ?? 'Group Wallet')}`}
       >
-        {depositResult?.success ? (
+        {depositResult?.resolvedStatus === 'successful' ? (
+          /* Card payment confirmed successful */
           <div className="text-center py-4">
-            {depositResult.paymentUrl
-              ? <Clock className="mx-auto mb-4 text-amber-500" size={48} />
-              : <CheckCircle className="mx-auto mb-4 text-teal-600" size={48} />}
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-100 mb-2">
-              {depositResult.paymentUrl ? 'Complete your card payment' : 'Payment request sent!'}
-            </h3>
-            {depositResult.paymentUrl ? (
-              <>
-                <p className="text-sm text-gray-600 dark:text-slate-400 mb-4">
-                  A secure checkout window has opened — enter your card details there to finish paying.
-                </p>
-                <p className="text-xs text-gray-400 dark:text-slate-500 mb-3">
-                  Your wallet stays unchanged until the payment is confirmed. If the window didn&apos;t open (or your browser blocked the popup), use the button below.
-                </p>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full"
-                  onClick={() => depositResult.paymentUrl && openCheckoutPopup(depositResult.paymentUrl)}
-                >
-                  <CreditCard size={14} /> Open Card Checkout
-                </Button>
-              </>
-            ) : (
-              <>
-                <p className="text-sm text-gray-600 dark:text-slate-400 mb-6">{depositResult.message}</p>
-                <p className="text-xs text-gray-400 dark:text-slate-500">Your balance will update automatically once you confirm the payment on your phone.</p>
-              </>
-            )}
-            <Button className="mt-6 w-full" onClick={() => { setDepositOpen(false); load(); }}>Done</Button>
+            <CheckCircle className="mx-auto mb-4 text-teal-600" size={48} />
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-100 mb-2">Payment successful!</h3>
+            <p className="text-sm text-gray-600 dark:text-slate-400 mb-6">{depositResult.message}</p>
+            <Button className="w-full" onClick={closeDeposit}>Done</Button>
+          </div>
+        ) : depositResult?.resolvedStatus === 'failed' ? (
+          /* Card payment came back failed */
+          <div className="text-center py-4">
+            <XCircle className="mx-auto mb-4 text-red-500" size={48} />
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-100 mb-2">Payment failed</h3>
+            <p className="text-sm text-gray-600 dark:text-slate-400 mb-6">
+              {depositResult.message} No money has been taken — you can try again.
+            </p>
+            <div className="flex gap-3">
+              <Button variant="secondary" className="flex-1" onClick={closeDeposit}>Close</Button>
+              <Button className="flex-1" onClick={() => setDepositResult(null)}>Try Again</Button>
+            </div>
+          </div>
+        ) : depositResult?.success && depositResult.paymentUrl ? (
+          /* Card checkout opened — waiting for the outcome (polling) */
+          <div className="text-center py-4">
+            <Clock className="mx-auto mb-4 text-amber-500" size={48} />
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-100 mb-2">Complete your card payment</h3>
+            <p className="text-sm text-gray-600 dark:text-slate-400 mb-4">
+              A secure checkout window has opened — enter your card details there to finish paying.
+            </p>
+            <div className="flex items-center justify-center gap-2 text-xs text-amber-600 dark:text-amber-400 mb-4">
+              <RefreshCw size={13} className="animate-spin" /> Waiting for confirmation…
+            </div>
+            <p className="text-xs text-gray-400 dark:text-slate-500 mb-3">
+              This will update automatically once the payment completes. If the window didn&apos;t open (or your browser blocked the popup), use the button below.
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              onClick={() => depositResult.paymentUrl && openCheckoutPopup(depositResult.paymentUrl)}
+            >
+              <CreditCard size={14} /> Open Card Checkout
+            </Button>
+            <Button variant="secondary" className="mt-3 w-full" onClick={closeDeposit}>Close</Button>
+          </div>
+        ) : depositResult?.success ? (
+          /* Mobile money request sent — resolves via webhook */
+          <div className="text-center py-4">
+            <CheckCircle className="mx-auto mb-4 text-teal-600" size={48} />
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-100 mb-2">Payment request sent!</h3>
+            <p className="text-sm text-gray-600 dark:text-slate-400 mb-6">{depositResult.message}</p>
+            <p className="text-xs text-gray-400 dark:text-slate-500">Your balance will update automatically once you confirm the payment on your phone.</p>
+            <Button className="mt-6 w-full" onClick={closeDeposit}>Done</Button>
           </div>
         ) : (
           <form onSubmit={handleDeposit} className="space-y-4">
@@ -349,11 +420,11 @@ export default function WalletPage() {
                 : 'You will be redirected to a secure checkout page to enter your card details. Visa and Mastercard are supported. Your card details never touch Chilimba servers.'}
             </div>
             <div className="flex gap-3 pt-1">
-              <Button type="button" variant="secondary" className="flex-1" onClick={() => setDepositOpen(false)}>
+              <Button type="button" variant="secondary" className="flex-1" onClick={closeDeposit}>
                 Cancel
               </Button>
               <Button type="submit" className="flex-1" loading={depositing}>
-                <Plus size={14} /> Top Up
+                <Plus size={14} /> {method === 'card' ? 'Pay by Card' : 'Top Up'}
               </Button>
             </div>
           </form>
