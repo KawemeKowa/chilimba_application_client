@@ -15,7 +15,7 @@ import { PageSpinner } from '@/components/ui/Spinner';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   Users, Coins, ArrowLeft, Copy, RefreshCw,
-  MessageSquare, ArrowLeftRight, Gift, List, Trash2, Phone, PlusCircle
+  MessageSquare, ArrowLeftRight, Gift, List, Trash2, Phone, PlusCircle, ScrollText
 } from 'lucide-react';
 
 export default function GroupDetailPage() {
@@ -122,7 +122,7 @@ export default function GroupDetailPage() {
       </div>
 
       {/* Quick actions */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
         {[
           { href: `/groups/${groupId}/contributions`, icon: Coins, label: 'Contributions' },
           { href: `/groups/${groupId}/withdrawals`, icon: ArrowLeftRight, label: 'Withdrawals' },
@@ -130,6 +130,7 @@ export default function GroupDetailPage() {
           { href: `/groups/${groupId}/messages`, icon: MessageSquare, label: 'Messages' },
           { href: `/wallet?deposit=${groupId}`, icon: PlusCircle, label: 'Top Up' },
           { href: `/groups/${groupId}/payouts`, icon: List, label: 'Payouts' },
+          { href: `/groups/${groupId}/constitution`, icon: ScrollText, label: 'Rules' },
         ].map((action, i) => (
           <Link key={i} href={action.href}>
             <div className={`bg-white dark:bg-slate-800 border rounded-xl p-4 text-center hover:shadow-sm transition-all cursor-pointer ${

@@ -48,6 +48,13 @@ export default function PayoutManagementPage() {
   const iProposed  = proposal?.proposedBy === user?.id;
   const nextPayout = data.duePayouts[0] ?? null;
 
+  // Approval / threshold gate for the next scheduled payout (constitution)
+  const ap = data.nextPayoutApproval;
+  const approvalsMet = !ap || ap.approvalMode !== 'majority' || ap.approvalsCount >= ap.approvalsRequired;
+  const thresholdMet = !ap || ap.thresholdMet;
+  const disburseReady = approvalsMet && thresholdMet;
+  const iAmRecipient = (id: string) => nextPayout?.userId === user?.id && nextPayout?.id === id;
+
   const startEdit = () => {
     setDraft([...data.members]);
     setEditing(true);
@@ -110,6 +117,20 @@ export default function PayoutManagementPage() {
       setMessage({ ok: false, text: err instanceof Error ? err.message : 'Disbursement failed' });
     } finally {
       setDisbursing(null);
+    }
+  };
+
+  const votePayout = async (payoutScheduleId: string, action: 'approved' | 'rejected') => {
+    setVoting(true);
+    setMessage(null);
+    try {
+      const res = await groups.approvePayout(groupId, payoutScheduleId, action);
+      setMessage({ ok: true, text: res.message });
+      load();
+    } catch (err: unknown) {
+      setMessage({ ok: false, text: err instanceof Error ? err.message : 'Vote failed' });
+    } finally {
+      setVoting(false);
     }
   };
 
@@ -261,7 +282,7 @@ export default function PayoutManagementPage() {
                       </p>
                     </div>
                     {canDisburse && isNext && (
-                      <Button size="sm" onClick={() => disburse(p.id)} loading={disbursing === p.id}>
+                      <Button size="sm" onClick={() => disburse(p.id)} loading={disbursing === p.id} disabled={!disburseReady}>
                         <Banknote size={14} /> Disburse
                       </Button>
                     )}
@@ -270,9 +291,64 @@ export default function PayoutManagementPage() {
               })}
             </div>
           )}
+
+          {/* Approval + threshold status for the next payout */}
+          {ap && nextPayout && (
+            <div className="mt-4 pt-4 border-t border-gray-100 dark:border-slate-700 space-y-3">
+              {/* Contribution threshold */}
+              <div>
+                <div className="flex items-center justify-between text-xs mb-1">
+                  <span className="text-gray-500 dark:text-slate-400">Contributions collected ({ap.thresholdPercent}% required)</span>
+                  <span className={`font-medium ${thresholdMet ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400'}`}>
+                    ZMW {ap.collected.toLocaleString()} / {ap.expectedPool.toLocaleString()}
+                  </span>
+                </div>
+                <div className="h-1.5 rounded-full bg-gray-100 dark:bg-slate-700 overflow-hidden">
+                  <div className={`h-full ${thresholdMet ? 'bg-green-500' : 'bg-amber-500'}`}
+                    style={{ width: `${ap.expectedPool > 0 ? Math.min(100, (ap.collected / ap.expectedPool) * 100) : 100}%` }} />
+                </div>
+              </div>
+
+              {/* Approval votes */}
+              {ap.approvalMode === 'majority' ? (
+                <div>
+                  <div className="flex items-center justify-between text-xs mb-2">
+                    <span className="text-gray-500 dark:text-slate-400">Payout approvals</span>
+                    <span className={`font-medium ${approvalsMet ? 'text-green-600 dark:text-green-400' : 'text-gray-700 dark:text-slate-300'}`}>
+                      {ap.approvalsCount} / {ap.approvalsRequired}
+                    </span>
+                  </div>
+                  {!ap.iVoted && !iAmRecipient(nextPayout.id) && (
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" onClick={() => votePayout(nextPayout.id, 'approved')} loading={voting}
+                        className="flex-1 text-green-600 border-green-300 hover:bg-green-50 dark:hover:bg-green-900/20">
+                        <ThumbsUp size={14} /> Approve payout
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => votePayout(nextPayout.id, 'rejected')} loading={voting}
+                        className="flex-1 text-red-600 border-red-300 hover:bg-red-50 dark:hover:bg-red-900/20">
+                        <ThumbsDown size={14} /> Reject
+                      </Button>
+                    </div>
+                  )}
+                  {ap.iVoted && <Badge label="You voted" variant="info" />}
+                  {iAmRecipient(nextPayout.id) && <p className="text-xs text-gray-400 dark:text-slate-500">You are the recipient — you can&apos;t vote on your own payout.</p>}
+                </div>
+              ) : (
+                <p className="text-xs text-gray-400 dark:text-slate-500">This group requires no payout approvals.</p>
+              )}
+
+              {canDisburse && !disburseReady && (
+                <p className="text-xs text-amber-600 dark:text-amber-400">
+                  {!thresholdMet ? 'Contribution threshold not yet met. ' : ''}
+                  {!approvalsMet ? 'Waiting for the required approvals.' : ''}
+                </p>
+              )}
+            </div>
+          )}
+
           {!canDisburse && data.duePayouts.length > 0 && (
             <p className="text-xs text-gray-500 dark:text-slate-400 mt-3">
-              Only members with the approver permission can trigger disbursements.
+              Only members with the disburse permission can trigger payouts.
             </p>
           )}
         </Card>

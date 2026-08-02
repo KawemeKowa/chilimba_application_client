@@ -22,6 +22,13 @@ export default function GroupsPage() {
   const [joining, setJoining] = useState(false);
   const [error, setError] = useState('');
 
+  // Constitution fields that drive conditional inputs / helpers
+  const [maxMembers, setMaxMembers] = useState('12');
+  const [lateFeeType, setLateFeeType] = useState<'none' | 'fixed' | 'percentage'>('none');
+  const [approvalMode, setApprovalMode] = useState<'none' | 'majority'>('majority');
+  // Majority size (2→2, 3→2, 4→3, 5→3, 6→4 …) for the approvals helper text
+  const recommendedApprovals = Math.max(1, Math.ceil((Number(maxMembers || 0) + 1) / 2));
+
   const load = () =>
     groups.list().then(r => setMyGroups(r.data)).finally(() => setLoading(false));
 
@@ -133,31 +140,102 @@ export default function GroupsPage() {
         </div>
       )}
 
-      {/* Create Modal */}
+      {/* Create Modal — the group constitution */}
       <Modal open={createOpen} onClose={() => setCreateOpen(false)} title="Create New Group" size="lg">
-        {error && <p className="mb-4 text-sm text-red-600 bg-red-50 p-3 rounded-lg">{error}</p>}
-        <form onSubmit={handleCreate} className="space-y-4">
+        {error && <p className="mb-4 text-sm text-red-600 bg-red-50 dark:bg-red-900/20 dark:text-red-400 p-3 rounded-lg">{error}</p>}
+        <p className="text-sm text-gray-500 dark:text-slate-400 mb-4">
+          These rules form your group&apos;s constitution — they govern how contributions, payouts, and approvals work. Members can view them anytime.
+        </p>
+        <form onSubmit={handleCreate} className="space-y-5 max-h-[70vh] overflow-y-auto pr-1">
           <Input label="Group name" name="name" placeholder="Lusaka North Chilimba" required />
           <Textarea label="Description (optional)" name="description" placeholder="What is this group for?" />
-          <div className="grid grid-cols-2 gap-3">
-            <Input label="Monthly amount" name="monthlyAmount" type="number" min="1" placeholder="500" required />
-            <Input label="Max members" name="maxMembers" type="number" min="2" max="5000" placeholder="12" required />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <Input label="Contribution day" name="contributionDay" type="number" min="1" max="28" placeholder="1" required />
-            <Input label="Payout day" name="payoutDay" type="number" min="1" max="28" placeholder="25" required />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <Input label="Min approvals for withdrawal" name="minApprovalsWithdrawal" type="number" min="1" placeholder="3" required />
-            <Select label="Currency" name="currency" defaultValue="ZMW">
-              <option value="ZMW">ZMW – Zambian Kwacha</option>
-              <option value="USD">USD – US Dollar</option>
-              <option value="EUR">EUR – Euro</option>
-              <option value="GBP">GBP – British Pound</option>
-              <option value="ZAR">ZAR – South African Rand</option>
-            </Select>
-          </div>
-          <div className="flex justify-end gap-3 pt-2">
+
+          {/* Section 1 — Financial rules */}
+          <fieldset className="border border-gray-200 dark:border-slate-700 rounded-lg p-4">
+            <legend className="px-2 text-sm font-semibold text-gray-700 dark:text-slate-200">1. Financial Rules</legend>
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <Input label="Monthly contribution" name="monthlyAmount" type="number" min="1" step="0.01" placeholder="500" required />
+                <Select label="Currency" name="currency" defaultValue="ZMW">
+                  <option value="ZMW">ZMW – Zambian Kwacha</option>
+                  <option value="USD">USD – US Dollar</option>
+                  <option value="EUR">EUR – Euro</option>
+                  <option value="GBP">GBP – British Pound</option>
+                  <option value="ZAR">ZAR – South African Rand</option>
+                </Select>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <Input label="Max members" name="maxMembers" type="number" min="2" max="5000"
+                  value={maxMembers} onChange={e => setMaxMembers(e.target.value)} required />
+                <Input label="Grace period (days after due)" name="gracePeriodDays" type="number" min="0" max="60" placeholder="5" defaultValue="5" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <Input label="Contribution day" name="contributionDay" type="number" min="1" max="28" placeholder="1" defaultValue="1" required />
+                <Input label="Payout day" name="payoutDay" type="number" min="1" max="28" placeholder="25" defaultValue="25" required />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <Select label="Late payment penalty" name="lateFeeType" value={lateFeeType}
+                  onChange={e => setLateFeeType(e.target.value as 'none' | 'fixed' | 'percentage')}>
+                  <option value="none">None</option>
+                  <option value="fixed">Fixed amount</option>
+                  <option value="percentage">Percentage of contribution</option>
+                </Select>
+                {lateFeeType !== 'none' && (
+                  <Input
+                    label={lateFeeType === 'fixed' ? 'Late fee amount' : 'Late fee (%)'}
+                    name="lateFeeValue" type="number" min="0" step="0.01"
+                    placeholder={lateFeeType === 'fixed' ? '10' : '5'} required
+                  />
+                )}
+              </div>
+            </div>
+          </fieldset>
+
+          {/* Section 2 — Payout schedule */}
+          <fieldset className="border border-gray-200 dark:border-slate-700 rounded-lg p-4">
+            <legend className="px-2 text-sm font-semibold text-gray-700 dark:text-slate-200">2. Payout Schedule</legend>
+            <div className="space-y-3">
+              <Select label="Payout order" name="payoutOrderMode" defaultValue="fixed">
+                <option value="fixed">Fixed order — set the sequence yourself</option>
+                <option value="random">Random draw — assigned before the first cycle</option>
+                <option value="admin_assigned">Admin assigned — creator chooses the order</option>
+              </Select>
+              <Select label="Contribution required before a payout" name="contributionThresholdPercent" defaultValue="100">
+                <option value="100">Strict — 100% collected (every member paid)</option>
+                <option value="80">Flexible — 80% of expected collected</option>
+                <option value="75">Flexible — 75% of expected collected</option>
+                <option value="50">Lenient — 50% of expected collected</option>
+              </Select>
+              <p className="text-xs text-gray-400 dark:text-slate-500">The payout order and membership lock automatically after the first payout.</p>
+            </div>
+          </fieldset>
+
+          {/* Section 3 — Payout approval */}
+          <fieldset className="border border-gray-200 dark:border-slate-700 rounded-lg p-4">
+            <legend className="px-2 text-sm font-semibold text-gray-700 dark:text-slate-200">3. Payout Approval</legend>
+            <div className="space-y-3">
+              <Select label="Approval mode" name="payoutApprovalMode" value={approvalMode}
+                onChange={e => setApprovalMode(e.target.value as 'none' | 'majority')}>
+                <option value="majority">Majority vote (recommended)</option>
+                <option value="none">No approval — payouts occur without a vote</option>
+              </Select>
+              {approvalMode === 'majority' && (
+                <>
+                  <Input
+                    label="Approvals required per payout"
+                    name="payoutApprovalsRequired" type="number" min="1" max={maxMembers || undefined}
+                    placeholder={`${recommendedApprovals} (recommended)`}
+                  />
+                  <p className="text-xs text-gray-400 dark:text-slate-500">
+                    Leave blank to auto-use a majority of active members. For {maxMembers || '—'} members, that&apos;s {recommendedApprovals}.
+                  </p>
+                </>
+              )}
+              <Input label="Min approvals for a withdrawal" name="minApprovalsWithdrawal" type="number" min="1" placeholder="2" defaultValue="2" required />
+            </div>
+          </fieldset>
+
+          <div className="flex justify-end gap-3 pt-1">
             <Button type="button" variant="secondary" onClick={() => setCreateOpen(false)}>Cancel</Button>
             <Button type="submit" loading={creating}>Create Group</Button>
           </div>

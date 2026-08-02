@@ -123,7 +123,23 @@ export const groups = {
   disbursePayout: (groupId: string, payoutScheduleId: string) =>
     request<{ success: boolean; message: string; data: { netPayout: number; feeCharged: number } }>(
       `/groups/${groupId}/payouts/${payoutScheduleId}/disburse`, { method: 'POST' }),
+  approvePayout: (groupId: string, payoutScheduleId: string, action: 'approved' | 'rejected', comment?: string) =>
+    request<{ success: boolean; message: string }>(
+      `/groups/${groupId}/payouts/${payoutScheduleId}/approve`, { method: 'POST', body: JSON.stringify({ action, comment }) }),
 };
+
+export interface NextPayoutApproval {
+  payoutScheduleId: string;
+  approvalMode: 'none' | 'majority';
+  approvalsRequired: number;
+  approvalsCount: number;
+  votes: { approverId: string; action: string }[];
+  iVoted: boolean;
+  collected: number;
+  expectedPool: number;
+  thresholdPercent: number;
+  thresholdMet: boolean;
+}
 
 export interface PayoutOrderMember {
   userId: string;
@@ -164,6 +180,8 @@ export interface PayoutOrderData {
   pendingProposal: PayoutOrderProposal | null;
   myPermissions: string[];
   myRole: string;
+  scheduleLocked: boolean;
+  nextPayoutApproval: NextPayoutApproval | null;
 }
 
 // Invitations
@@ -489,6 +507,16 @@ export interface Group {
   photoUrl?: string;
   createdAt?: string;
   role?: string;
+  // ── Constitution ──
+  gracePeriodDays?: number;
+  lateFeeType?: 'none' | 'fixed' | 'percentage';
+  lateFeeValue?: number;
+  payoutOrderMode?: 'fixed' | 'random' | 'admin_assigned';
+  contributionThresholdPercent?: number;
+  payoutApprovalMode?: 'none' | 'majority';
+  payoutApprovalsRequired?: number;
+  scheduleLocked?: boolean;
+  membersLocked?: boolean;
 }
 
 export interface GroupDetail extends Group {
