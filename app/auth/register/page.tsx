@@ -7,6 +7,7 @@ import { auth } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { DatePicker } from '@/components/ui/DatePicker';
 
 function RegisterForm() {
   const router = useRouter();
@@ -21,6 +22,13 @@ function RegisterForm() {
     firstName: '', lastName: '', email: lockedEmail, phone: '',
     password: '', dateOfBirth: '',
   });
+  // Latest allowed DOB = 16 years ago (computed client-side to avoid hydration mismatch)
+  const [maxDob, setMaxDob] = useState<string | undefined>(undefined);
+  useEffect(() => {
+    const d = new Date();
+    d.setFullYear(d.getFullYear() - 16);
+    setMaxDob(d.toISOString().slice(0, 10));
+  }, []);
 
   useEffect(() => {
     if (!authLoading && user) {
@@ -86,7 +94,13 @@ function RegisterForm() {
               className={locked ? 'bg-gray-100 dark:bg-slate-600 text-gray-500 dark:text-slate-400 cursor-not-allowed' : ''}
             />
             <Input label="Phone number" type="tel" name="phone" value={form.phone} onChange={handleChange} placeholder="+260976543210" required />
-            <Input label="Date of birth" type="date" name="dateOfBirth" value={form.dateOfBirth} onChange={handleChange} required />
+            <DatePicker
+              label="Date of birth"
+              value={form.dateOfBirth}
+              onChange={iso => setForm(f => ({ ...f, dateOfBirth: iso }))}
+              max={maxDob}
+              required
+            />
             <Input label="Password" type="password" name="password" value={form.password} onChange={handleChange} placeholder="Minimum 8 characters" required />
             <p className="text-xs text-gray-500 dark:text-slate-400">You must be 16 years or older to register.</p>
             <Button type="submit" className="w-full" size="lg" loading={loading}>

@@ -165,14 +165,17 @@ export default function GroupsPage() {
                 </Select>
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <Input label="Max members" name="maxMembers" type="number" min="2" max="5000"
+                <Input label="Max members" name="maxMembers" type="number" min="2"
                   value={maxMembers} onChange={e => setMaxMembers(e.target.value)} required />
-                <Input label="Grace period (days after due)" name="gracePeriodDays" type="number" min="0" max="60" placeholder="5" defaultValue="5" />
+                <Input label="Grace period (days after deadline)" name="gracePeriodDays" type="number" min="0" max="60" placeholder="5" defaultValue="5" />
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <Input label="Contribution day" name="contributionDay" type="number" min="1" max="28" placeholder="1" defaultValue="1" required />
-                <Input label="Payout day" name="payoutDay" type="number" min="1" max="28" placeholder="25" defaultValue="25" required />
+                <Input label="Contribution deadline" name="contributionDay" type="number" min="1" max="31" placeholder="1" defaultValue="1" required />
+                <Input label="Payout day" name="payoutDay" type="number" min="1" max="31" placeholder="25" defaultValue="25" required />
               </div>
+              <p className="text-xs text-gray-400 dark:text-slate-500 -mt-1">
+                Day of the month. Members can contribute any time up to the deadline; after it (plus the grace period) a payment counts as late. Day 29–31 falls on the last day in shorter months.
+              </p>
               <div className="grid grid-cols-2 gap-3">
                 <Select label="Late payment penalty" name="lateFeeType" value={lateFeeType}
                   onChange={e => setLateFeeType(e.target.value as 'none' | 'fixed' | 'percentage')}>
@@ -206,7 +209,7 @@ export default function GroupsPage() {
                 <option value="75">Flexible — 75% of expected collected</option>
                 <option value="50">Lenient — 50% of expected collected</option>
               </Select>
-              <p className="text-xs text-gray-400 dark:text-slate-500">The payout order and membership lock automatically after the first payout.</p>
+              <p className="text-xs text-gray-400 dark:text-slate-500">How much of the monthly pool must be collected before that month&apos;s recipient can be paid. The payout order and membership lock automatically after the first payout.</p>
             </div>
           </fieldset>
 
@@ -214,24 +217,35 @@ export default function GroupsPage() {
           <fieldset className="border border-gray-200 dark:border-slate-700 rounded-lg p-4">
             <legend className="px-2 text-sm font-semibold text-gray-700 dark:text-slate-200">3. Payout Approval</legend>
             <div className="space-y-3">
-              <Select label="Approval mode" name="payoutApprovalMode" value={approvalMode}
+              <Select label="Payout approval mode" name="payoutApprovalMode" value={approvalMode}
                 onChange={e => setApprovalMode(e.target.value as 'none' | 'majority')}>
                 <option value="majority">Majority vote (recommended)</option>
-                <option value="none">No approval — payouts occur without a vote</option>
+                <option value="none">No approval — pay out automatically</option>
               </Select>
+              <p className="text-xs text-gray-500 dark:text-slate-400 bg-gray-50 dark:bg-slate-700/40 rounded-lg p-2.5">
+                {approvalMode === 'majority'
+                  ? 'Each month, before the pooled money is released to that month’s recipient, other members must vote to approve it. This protects the group from a single admin paying out without agreement. Best for groups that aren’t all close family.'
+                  : 'The pooled money is released to each month’s recipient automatically, with no vote. Only use this for small, high-trust groups (e.g. close family).'}
+              </p>
               {approvalMode === 'majority' && (
                 <>
                   <Input
-                    label="Approvals required per payout"
+                    label="Approvals needed to release a payout"
                     name="payoutApprovalsRequired" type="number" min="1" max={maxMembers || undefined}
-                    placeholder={`${recommendedApprovals} (recommended)`}
+                    placeholder={`Auto (${recommendedApprovals})`}
                   />
                   <p className="text-xs text-gray-400 dark:text-slate-500">
-                    Leave blank to auto-use a majority of active members. For {maxMembers || '—'} members, that&apos;s {recommendedApprovals}.
+                    How many members must approve each monthly payout. Leave blank to use a simple majority of members automatically
+                    {maxMembers ? ` — for ${maxMembers} members that's ${recommendedApprovals}` : ''}.
                   </p>
                 </>
               )}
-              <Input label="Min approvals for a withdrawal" name="minApprovalsWithdrawal" type="number" min="1" placeholder="2" defaultValue="2" required />
+              <div className="border-t border-gray-100 dark:border-slate-700 pt-3 mt-1">
+                <Input label="Approvals needed for a withdrawal" name="minApprovalsWithdrawal" type="number" min="1" placeholder="2" defaultValue="2" required />
+                <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">
+                  Separate from payouts: a <strong>withdrawal</strong> is when a member asks to take money out early (before their scheduled turn). This sets how many members must approve such a request.
+                </p>
+              </div>
             </div>
           </fieldset>
 
