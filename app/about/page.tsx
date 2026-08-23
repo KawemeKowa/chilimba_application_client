@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import {
   Users, Shield, Coins, Smartphone, ArrowLeft,
-  Mail, Phone, MapPin, Globe2, TrendingUp, HandHeart
+  TrendingUp, HandHeart
 } from 'lucide-react';
 
 const features = [
@@ -109,62 +109,6 @@ export default function AboutPage() {
                 <p className="text-sm text-gray-500 dark:text-slate-400 leading-relaxed">{description}</p>
               </div>
             ))}
-          </div>
-        </section>
-
-        {/* Company */}
-        <section>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-slate-100 mb-2">About the company</h2>
-          <div className="w-12 h-1 bg-teal-600 rounded mb-6" />
-          <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 overflow-hidden">
-            <div className="bg-teal-600 px-6 py-5">
-              <div className="flex items-center gap-3">
-                <Globe2 size={24} className="text-teal-200" />
-                <div>
-                  <h3 className="text-white font-bold text-lg">Velora Solutions</h3>
-                  <p className="text-teal-200 text-sm">Technology for financial inclusion</p>
-                </div>
-              </div>
-            </div>
-            <div className="p-6 space-y-4">
-              <p className="text-gray-600 dark:text-slate-400 leading-relaxed">
-                Velora Solutions is a Zambian technology company focused on building digital tools that improve everyday financial
-                lives. Chilimba is our flagship product, designed in close collaboration with savings group communities across Zambia.
-              </p>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
-                <div className="flex items-start gap-3">
-                  <MapPin size={17} className="text-teal-600 dark:text-teal-400 mt-0.5 flex-shrink-0" />
-                  <div>
-                    <p className="text-xs font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wide mb-1">Address</p>
-                    <p className="text-sm text-gray-700 dark:text-slate-300">477 Central Street<br />Chudleigh, Lusaka<br />Zambia</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <Mail size={17} className="text-teal-600 dark:text-teal-400 mt-0.5 flex-shrink-0" />
-                  <div>
-                    <p className="text-xs font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wide mb-1">Email</p>
-                    <a
-                      href="mailto:kawemekowa@gmail.com"
-                      className="text-sm text-teal-600 dark:text-teal-400 hover:underline break-all"
-                    >
-                      kawemekowa@gmail.com
-                    </a>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <Phone size={17} className="text-teal-600 dark:text-teal-400 mt-0.5 flex-shrink-0" />
-                  <div>
-                    <p className="text-xs font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wide mb-1">Phone</p>
-                    <a
-                      href="tel:+260978087633"
-                      className="text-sm text-teal-600 dark:text-teal-400 hover:underline"
-                    >
-                      +260 978 087 633
-                    </a>
-                  </div>
-                </div>
-              </div>
-            </div>
           </div>
         </section>
 
