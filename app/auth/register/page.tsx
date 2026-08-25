@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { auth } from '@/lib/api';
 import { Info } from 'lucide-react';
@@ -72,8 +73,8 @@ function RegisterForm() {
       </Link>
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 bg-teal-600 rounded-2xl mb-4">
-            <span className="text-white text-2xl font-bold">C</span>
+          <div className="inline-block bg-white rounded-2xl p-3 mb-4 shadow-sm border border-gray-100">
+            <Image src="/logo.JPG" alt="Chilimba" width={140} height={140} className="h-32 w-auto object-contain" priority />
           </div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100">Create your account</h1>
           <p className="text-gray-500 dark:text-slate-400 mt-1">Join Chilimba – digital village banking</p>

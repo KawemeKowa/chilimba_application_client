@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { Bell, LogOut, User, ChevronDown, Menu, Sun, Moon } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -31,11 +32,10 @@ export function Navbar({ onMenuToggle }: NavbarProps) {
         >
           <Menu size={20} />
         </button>
-        <Link href="/dashboard" className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-teal-600 rounded-lg flex items-center justify-center">
-            <span className="text-white text-sm font-bold">C</span>
+        <Link href="/dashboard" className="flex items-center">
+          <div className="bg-white rounded-lg px-2 py-1">
+            <Image src="/logo.JPG" alt="Chilimba" width={110} height={38} className="h-9 w-auto object-contain" priority />
           </div>
-          <span className="text-teal-600 font-bold text-lg hidden sm:block">CHILIMBA</span>
         </Link>
       </div>
 
