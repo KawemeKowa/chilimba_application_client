@@ -9,7 +9,8 @@ import { Card, StatCard } from '@/components/ui/Card';
 import { Badge, statusVariant } from '@/components/ui/Badge';
 import { PageSpinner } from '@/components/ui/Spinner';
 import { Button } from '@/components/ui/Button';
-import { Wallet as WalletIcon, Users, Clock, Bell, ArrowRight, TrendingUp } from 'lucide-react';
+import { Modal } from '@/components/ui/Modal';
+import { Wallet as WalletIcon, Users, Clock, Bell, ArrowRight, TrendingUp, ChevronRight } from 'lucide-react';
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -18,6 +19,7 @@ export default function DashboardPage() {
   const [myGroups, setMyGroups] = useState<Group[]>([]);
   const [notifs, setNotifs] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
+  const [savingsOpen, setSavingsOpen] = useState(false);
 
   useEffect(() => {
     Promise.allSettled([
@@ -30,8 +32,9 @@ export default function DashboardPage() {
 
   if (loading) return <PageSpinner />;
 
-  const totalBalance = wallets.reduce((sum, w) => sum + Number(w.balance), 0);
   const personalWallet = wallets.find(w => w.type === 'personal');
+  const groupWallets = wallets.filter(w => w.type === 'group');
+  const totalSavings = groupWallets.reduce((sum, w) => sum + Number(w.balance), 0);
 
   return (
     <div className="space-y-6">
@@ -46,15 +49,18 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           icon={<WalletIcon size={20} className="text-teal-600" />}
-          label="Personal Balance"
+          label="Personal Wallet Balance"
           value={`ZMW ${(personalWallet?.balance ?? 0).toLocaleString('en-ZM', { minimumFractionDigits: 2 })}`}
           iconBg="bg-teal-100"
+          subtitle="Money in your personal wallet to save to groups"
         />
         <StatCard
           icon={<TrendingUp size={20} className="text-blue-600" />}
-          label="Total Balance"
-          value={`ZMW ${totalBalance.toLocaleString('en-ZM', { minimumFractionDigits: 2 })}`}
+          label="Total Savings"
+          value={`ZMW ${totalSavings.toLocaleString('en-ZM', { minimumFractionDigits: 2 })}`}
           iconBg="bg-blue-100"
+          subtitle="Your balance across all groups"
+          onClick={() => setSavingsOpen(true)}
         />
         <StatCard
           icon={<Users size={20} className="text-purple-600" />}
@@ -161,6 +167,46 @@ export default function DashboardPage() {
           </div>
         )}
       </Card>
+      {/* Total Savings breakdown modal */}
+      <Modal open={savingsOpen} onClose={() => setSavingsOpen(false)} title="Total Savings Breakdown">
+        <div className="space-y-3">
+          {groupWallets.length === 0 ? (
+            <p className="text-center text-sm text-gray-400 dark:text-slate-500 py-6">
+              You have no group savings yet. Join or create a group to start saving.
+            </p>
+          ) : (
+            <>
+              {groupWallets.map(w => (
+                <Link key={w.id} href={`/groups/${w.groupId}`} onClick={() => setSavingsOpen(false)}>
+                  <div className="flex items-center justify-between p-3 rounded-xl border border-gray-100 dark:border-slate-700 hover:border-teal-200 dark:hover:border-teal-700 hover:bg-gray-50 dark:hover:bg-slate-700/40 transition-all cursor-pointer">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 bg-blue-50 dark:bg-blue-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <Users size={16} className="text-blue-600 dark:text-blue-400" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-900 dark:text-slate-100">{w.groupName ?? 'Group'}</p>
+                        <p className="text-xs text-gray-400 dark:text-slate-500">{w.currency} wallet</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-gray-900 dark:text-slate-100 text-sm">
+                        {w.currency} {Number(w.balance).toLocaleString('en-ZM', { minimumFractionDigits: 2 })}
+                      </span>
+                      <ChevronRight size={14} className="text-gray-300 dark:text-slate-600" />
+                    </div>
+                  </div>
+                </Link>
+              ))}
+              <div className="flex justify-between items-center pt-3 border-t border-gray-100 dark:border-slate-700">
+                <span className="text-sm font-semibold text-gray-700 dark:text-slate-300">Total</span>
+                <span className="text-base font-bold text-blue-600 dark:text-blue-400">
+                  ZMW {totalSavings.toLocaleString('en-ZM', { minimumFractionDigits: 2 })}
+                </span>
+              </div>
+            </>
+          )}
+        </div>
+      </Modal>
     </div>
   );
 }

@@ -12,9 +12,9 @@ import {
 } from 'lucide-react';
 
 const ORDER_MODE_LABEL: Record<string, string> = {
-  fixed: 'Fixed order',
+  fixed: 'Random draw',
   random: 'Random draw',
-  admin_assigned: 'Admin assigned',
+  admin_assigned: 'Group admin chooses order',
 };
 
 function Row({ label, value }: { label: string; value: React.ReactNode }) {

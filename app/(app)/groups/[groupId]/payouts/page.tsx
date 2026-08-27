@@ -9,9 +9,10 @@ import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { PageSpinner } from '@/components/ui/Spinner';
 import { useAuth } from '@/contexts/AuthContext';
+import { Modal } from '@/components/ui/Modal';
 import {
   ArrowLeft, ArrowUp, ArrowDown, ArrowDownAZ, Save, X,
-  Banknote, ShieldCheck, Clock, ThumbsUp, ThumbsDown, ListOrdered
+  Banknote, ShieldCheck, Clock, ThumbsUp, ThumbsDown, ListOrdered, AlertTriangle
 } from 'lucide-react';
 
 export default function PayoutManagementPage() {
@@ -27,6 +28,13 @@ export default function PayoutManagementPage() {
   const [voting, setVoting]   = useState(false);
   const [disbursing, setDisbursing] = useState<string | null>(null);
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
+  const [warningState, setWarningState] = useState<{
+    payoutScheduleId: string;
+    availableBalance: number;
+    expectedAmount: number;
+  } | null>(null);
+  const [partialAmountInput, setPartialAmountInput] = useState('');
+  const [confirmingPartial, setConfirmingPartial] = useState(false);
 
   const load = () =>
     groups.payoutOrder(groupId)
@@ -52,7 +60,8 @@ export default function PayoutManagementPage() {
   const ap = data.nextPayoutApproval;
   const approvalsMet = !ap || ap.approvalMode !== 'majority' || ap.approvalsCount >= ap.approvalsRequired;
   const thresholdMet = !ap || ap.thresholdMet;
-  const disburseReady = approvalsMet && thresholdMet;
+  // Threshold not meeting no longer blocks disburse — it triggers the partial-payout warning flow instead.
+  const disburseReady = approvalsMet;
   const iAmRecipient = (id: string) => nextPayout?.userId === user?.id && nextPayout?.id === id;
 
   const startEdit = () => {
@@ -111,12 +120,44 @@ export default function PayoutManagementPage() {
     setMessage(null);
     try {
       const res = await groups.disbursePayout(groupId, payoutScheduleId);
-      setMessage({ ok: true, text: `Disbursed ZMW ${res.data.netPayout.toLocaleString()} (fee: ZMW ${res.data.feeCharged.toLocaleString()})` });
-      load();
+      if (res.warning && res.data?.availableBalance !== undefined) {
+        setWarningState({
+          payoutScheduleId,
+          availableBalance: res.data.availableBalance,
+          expectedAmount: res.data.expectedAmount!,
+        });
+        setPartialAmountInput(res.data.availableBalance.toFixed(2));
+      } else {
+        setMessage({ ok: true, text: `Disbursed ZMW ${res.data!.netPayout.toLocaleString()} (fee: ZMW ${res.data!.feeCharged.toLocaleString()})` });
+        load();
+      }
     } catch (err: unknown) {
       setMessage({ ok: false, text: err instanceof Error ? err.message : 'Disbursement failed' });
     } finally {
       setDisbursing(null);
+    }
+  };
+
+  const confirmPartialDisburse = async () => {
+    if (!warningState) return;
+    setConfirmingPartial(true);
+    setMessage(null);
+    try {
+      const partialAmount = Number(partialAmountInput);
+      const res = await groups.disbursePayout(groupId, warningState.payoutScheduleId, { partialAmount });
+      const debtAmount = warningState.expectedAmount - partialAmount;
+      setWarningState(null);
+      setMessage({
+        ok: true,
+        text: res.data?.isPartial
+          ? `Partial payout of ZMW ${res.data.netPayout.toLocaleString()} disbursed. ZMW ${debtAmount.toLocaleString()} recorded as owed.`
+          : `Disbursed ZMW ${res.data!.netPayout.toLocaleString()} (fee: ZMW ${res.data!.feeCharged.toLocaleString()})`,
+      });
+      load();
+    } catch (err: unknown) {
+      setMessage({ ok: false, text: err instanceof Error ? err.message : 'Disbursement failed' });
+    } finally {
+      setConfirmingPartial(false);
     }
   };
 
@@ -339,8 +380,12 @@ export default function PayoutManagementPage() {
 
               {canDisburse && !disburseReady && (
                 <p className="text-xs text-amber-600 dark:text-amber-400">
-                  {!thresholdMet ? 'Contribution threshold not yet met. ' : ''}
                   {!approvalsMet ? 'Waiting for the required approvals.' : ''}
+                </p>
+              )}
+              {canDisburse && !thresholdMet && disburseReady && (
+                <p className="text-xs text-amber-600 dark:text-amber-400">
+                  Contributions are below 100% — disbursing will open the partial payout flow.
                 </p>
               )}
             </div>
@@ -353,6 +398,74 @@ export default function PayoutManagementPage() {
           )}
         </Card>
       </div>
+
+      {/* Partial payout warning modal */}
+      <Modal
+        open={!!warningState}
+        onClose={() => setWarningState(null)}
+        title="Insufficient Contributions"
+        size="sm"
+      >
+        {warningState && (
+          <div className="space-y-4">
+            <div className="flex items-start gap-3">
+              <AlertTriangle size={18} className="text-amber-500 flex-shrink-0 mt-0.5" />
+              <p className="text-sm text-gray-600 dark:text-slate-400">
+                Not all members have contributed this cycle. You can approve a partial payout now — the shortfall will be tracked in <strong>Money Owed</strong> and paid when funds become available.
+              </p>
+            </div>
+
+            <div className="bg-gray-50 dark:bg-slate-700/50 rounded-xl p-4 space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-gray-500 dark:text-slate-400">Expected payout</span>
+                <span className="font-semibold text-gray-900 dark:text-slate-100">ZMW {warningState.expectedAmount.toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500 dark:text-slate-400">Collected so far</span>
+                <span className="font-semibold text-amber-600 dark:text-amber-400">ZMW {warningState.availableBalance.toLocaleString()}</span>
+              </div>
+              <div className="border-t border-gray-200 dark:border-slate-600 pt-2 flex justify-between">
+                <span className="text-gray-500 dark:text-slate-400">Will be owed after</span>
+                <span className="font-semibold text-red-600 dark:text-red-400">
+                  ZMW {Math.max(0, warningState.expectedAmount - Number(partialAmountInput || 0)).toLocaleString()}
+                </span>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">
+                Amount to disburse now
+              </label>
+              <input
+                type="number"
+                min="0.01"
+                max={warningState.availableBalance}
+                step="0.01"
+                value={partialAmountInput}
+                onChange={e => setPartialAmountInput(e.target.value)}
+                className="w-full border border-gray-300 dark:border-slate-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500"
+              />
+              <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">
+                Max: ZMW {warningState.availableBalance.toLocaleString()}
+              </p>
+            </div>
+
+            <div className="flex gap-3 pt-1">
+              <Button variant="secondary" className="flex-1" onClick={() => setWarningState(null)}>
+                Cancel
+              </Button>
+              <Button
+                className="flex-1"
+                loading={confirmingPartial}
+                disabled={!partialAmountInput || Number(partialAmountInput) <= 0 || Number(partialAmountInput) > warningState.availableBalance}
+                onClick={confirmPartialDisburse}
+              >
+                Approve Partial Payout
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }

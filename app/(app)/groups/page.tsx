@@ -12,6 +12,12 @@ import { Input, Textarea, Select } from '@/components/ui/Input';
 import { PageSpinner } from '@/components/ui/Spinner';
 import { Users, Plus, LogIn, ArrowRight, Calendar, Coins } from 'lucide-react';
 
+const ordinal = (n: number) => {
+  const v = n % 100;
+  const s = ['th', 'st', 'nd', 'rd'];
+  return n + (s[(v - 20) % 10] || s[v] || s[0]);
+};
+
 export default function GroupsPage() {
   const [myGroups, setMyGroups] = useState<Group[]>([]);
   const [loading, setLoading] = useState(true);
@@ -25,9 +31,7 @@ export default function GroupsPage() {
   // Constitution fields that drive conditional inputs / helpers
   const [maxMembers, setMaxMembers] = useState('12');
   const [lateFeeType, setLateFeeType] = useState<'none' | 'fixed' | 'percentage'>('none');
-  const [approvalMode, setApprovalMode] = useState<'none' | 'majority'>('majority');
-  // Majority size (2→2, 3→2, 4→3, 5→3, 6→4 …) for the approvals helper text
-  const recommendedApprovals = Math.max(1, Math.ceil((Number(maxMembers || 0) + 1) / 2));
+  const [approvalMode, setApprovalMode] = useState<'admin' | 'none'>('admin');
 
   const load = () =>
     groups.list().then(r => setMyGroups(r.data)).finally(() => setLoading(false));
@@ -98,37 +102,43 @@ export default function GroupsPage() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {myGroups.map(g => (
-            <div key={g.id} className="bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+            <div key={g.id} className="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow">
               <div className="p-5">
                 <div className="flex items-start justify-between mb-3">
-                  <div className="w-12 h-12 bg-teal-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <Users size={22} className="text-teal-600" />
+                  <div className="w-12 h-12 bg-teal-100 dark:bg-teal-900/40 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <Users size={22} className="text-teal-600 dark:text-teal-400" />
                   </div>
-                  <Badge label={g.status} variant={statusVariant(g.status)} />
+                  <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${
+                    g.status === 'active' ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300' :
+                    g.status === 'paused' ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300' :
+                    'bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-300'
+                  }`}>
+                    {g.status.charAt(0).toUpperCase() + g.status.slice(1)}
+                  </span>
                 </div>
-                <h3 className="font-semibold text-gray-900 mt-3">{g.name}</h3>
-                {g.description && <p className="text-sm text-gray-500 mt-1 line-clamp-2">{g.description}</p>}
+                <h3 className="font-semibold text-gray-900 dark:text-slate-100 mt-3">{g.name}</h3>
+                {g.description && <p className="text-sm text-gray-500 dark:text-slate-400 mt-1 line-clamp-2">{g.description}</p>}
 
                 <div className="grid grid-cols-2 gap-2 mt-4 text-sm">
-                  <div className="flex items-center gap-1.5 text-gray-600">
-                    <Coins size={14} className="text-teal-500" />
+                  <div className="flex items-center gap-1.5 text-gray-600 dark:text-slate-300">
+                    <Coins size={14} className="text-teal-500 dark:text-teal-400" />
                     <span>ZMW {(g.monthlyAmount ?? 0).toLocaleString()}/mo</span>
                   </div>
-                  <div className="flex items-center gap-1.5 text-gray-600">
-                    <Users size={14} className="text-teal-500" />
-                    <span>{g.memberCount || 0}/{g.maxMembers}</span>
+                  <div className="flex items-center gap-1.5 text-gray-600 dark:text-slate-300">
+                    <Users size={14} className="text-teal-500 dark:text-teal-400" />
+                    <span>{g.memberCount || 0}/{g.maxMembers} members</span>
                   </div>
-                  <div className="flex items-center gap-1.5 text-gray-600">
-                    <Calendar size={14} className="text-teal-500" />
-                    <span>Contributes: {g.contributionDay}</span>
+                  <div className="flex items-center gap-1.5 text-gray-600 dark:text-slate-300">
+                    <Calendar size={14} className="text-teal-500 dark:text-teal-400" />
+                    <span>Contribution: {ordinal(g.contributionDay ?? 1)} day of month</span>
                   </div>
-                  <div className="flex items-center gap-1.5 text-gray-600">
-                    <Calendar size={14} className="text-teal-500" />
-                    <span>Payout: {g.payoutDay}</span>
+                  <div className="flex items-center gap-1.5 text-gray-600 dark:text-slate-300">
+                    <Calendar size={14} className="text-teal-500 dark:text-teal-400" />
+                    <span>Payout: {ordinal(g.payoutDay ?? 1)} day of month</span>
                   </div>
                 </div>
               </div>
-              <div className="px-5 pb-5">
+              <div className="px-5 pb-5 border-t border-gray-50 dark:border-slate-700/60 pt-4">
                 <Link href={`/groups/${g.id}`}>
                   <Button variant="outline" size="sm" className="w-full">
                     View Group <ArrowRight size={14} />
@@ -164,17 +174,14 @@ export default function GroupsPage() {
                   <option value="ZAR">ZAR – South African Rand</option>
                 </Select>
               </div>
+              <Input label="Number of members" name="maxMembers" type="number" min="2"
+                value={maxMembers} onChange={e => setMaxMembers(e.target.value)} required />
               <div className="grid grid-cols-2 gap-3">
-                <Input label="Max members" name="maxMembers" type="number" min="2"
-                  value={maxMembers} onChange={e => setMaxMembers(e.target.value)} required />
-                <Input label="Grace period (days after deadline)" name="gracePeriodDays" type="number" min="0" max="60" placeholder="5" defaultValue="5" />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <Input label="Contribution deadline" name="contributionDay" type="number" min="1" max="31" placeholder="1" defaultValue="1" required />
-                <Input label="Payout day" name="payoutDay" type="number" min="1" max="31" placeholder="25" defaultValue="25" required />
+                <Input label="Contribution deadline (day of the month)" name="contributionDay" type="number" min="1" max="31" placeholder="1" defaultValue="1" required />
+                <Input label="Payout day (day of the month)" name="payoutDay" type="number" min="1" max="31" placeholder="25" defaultValue="25" required />
               </div>
               <p className="text-xs text-gray-400 dark:text-slate-500 -mt-1">
-                Day of the month. Members can contribute any time up to the deadline; after it (plus the grace period) a payment counts as late. Day 29–31 falls on the last day in shorter months.
+                Day of the month. Contributions received after the deadline count as late. Day 29–31 falls on the last day in shorter months.
               </p>
               <div className="grid grid-cols-2 gap-3">
                 <Select label="Late payment penalty" name="lateFeeType" value={lateFeeType}
@@ -198,18 +205,11 @@ export default function GroupsPage() {
           <fieldset className="border border-gray-200 dark:border-slate-700 rounded-lg p-4">
             <legend className="px-2 text-sm font-semibold text-gray-700 dark:text-slate-200">2. Payout Schedule</legend>
             <div className="space-y-3">
-              <Select label="Payout order" name="payoutOrderMode" defaultValue="fixed">
-                <option value="fixed">Fixed order — set the sequence yourself</option>
-                <option value="random">Random draw — assigned before the first cycle</option>
-                <option value="admin_assigned">Admin assigned — creator chooses the order</option>
+              <Select label="Payout order" name="payoutOrderMode" defaultValue="random">
+                <option value="random">Random — system randomizes payout order</option>
+                <option value="admin_assigned">Group admin chooses order</option>
               </Select>
-              <Select label="Contribution required before a payout" name="contributionThresholdPercent" defaultValue="100">
-                <option value="100">Strict — 100% collected (every member paid)</option>
-                <option value="80">Flexible — 80% of expected collected</option>
-                <option value="75">Flexible — 75% of expected collected</option>
-                <option value="50">Lenient — 50% of expected collected</option>
-              </Select>
-              <p className="text-xs text-gray-400 dark:text-slate-500">How much of the monthly pool must be collected before that month&apos;s recipient can be paid. The payout order and membership lock automatically after the first payout.</p>
+              <p className="text-xs text-gray-400 dark:text-slate-500">Payout order and membership lock automatically after the first payout.</p>
             </div>
           </fieldset>
 
@@ -217,33 +217,20 @@ export default function GroupsPage() {
           <fieldset className="border border-gray-200 dark:border-slate-700 rounded-lg p-4">
             <legend className="px-2 text-sm font-semibold text-gray-700 dark:text-slate-200">3. Payout Approval</legend>
             <div className="space-y-3">
-              <Select label="Payout approval mode" name="payoutApprovalMode" value={approvalMode}
-                onChange={e => setApprovalMode(e.target.value as 'none' | 'majority')}>
-                <option value="majority">Majority vote (recommended)</option>
-                <option value="none">No approval — pay out automatically</option>
+              <Select label="Payout approval" name="payoutApprovalMode" value={approvalMode}
+                onChange={e => setApprovalMode(e.target.value as ‘admin’ | ‘none’)}>
+                <option value="admin">Admin Approval — group admin triggers each payout</option>
+                <option value="none">No Approval — system pays out automatically on payout day</option>
               </Select>
               <p className="text-xs text-gray-500 dark:text-slate-400 bg-gray-50 dark:bg-slate-700/40 rounded-lg p-2.5">
-                {approvalMode === 'majority'
-                  ? 'Each month, before the pooled money is released to that month’s recipient, other members must vote to approve it. This protects the group from a single admin paying out without agreement. Best for groups that aren’t all close family.'
-                  : 'The pooled money is released to each month’s recipient automatically, with no vote. Only use this for small, high-trust groups (e.g. close family).'}
+                {approvalMode === ‘admin’
+                  ? ‘The group admin manually triggers each payout. No second approval or maker-checker required.’
+                  : ‘Payouts are released automatically on the scheduled payout day. Best for high-trust groups.’}
               </p>
-              {approvalMode === 'majority' && (
-                <>
-                  <Input
-                    label="Approvals needed to release a payout"
-                    name="payoutApprovalsRequired" type="number" min="1" max={maxMembers || undefined}
-                    placeholder={`Auto (${recommendedApprovals})`}
-                  />
-                  <p className="text-xs text-gray-400 dark:text-slate-500">
-                    How many members must approve each monthly payout. Leave blank to use a simple majority of members automatically
-                    {maxMembers ? ` — for ${maxMembers} members that's ${recommendedApprovals}` : ''}.
-                  </p>
-                </>
-              )}
               <div className="border-t border-gray-100 dark:border-slate-700 pt-3 mt-1">
                 <Input label="Approvals needed for a withdrawal" name="minApprovalsWithdrawal" type="number" min="1" placeholder="2" defaultValue="2" required />
                 <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">
-                  Separate from payouts: a <strong>withdrawal</strong> is when a member asks to take money out early (before their scheduled turn). This sets how many members must approve such a request.
+                  A <strong>withdrawal</strong> is when a member requests early access to funds before their scheduled turn. This sets how many members must approve such a request.
                 </p>
               </div>
             </div>

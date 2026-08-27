@@ -111,6 +111,12 @@ export const groups = {
     request(`/groups/${groupId}/members/${userId}`, { method: 'DELETE' }),
   invite: (groupId: string, email: string) =>
     request(`/groups/${groupId}/invite`, { method: 'POST', body: JSON.stringify({ email }) }),
+  listInvitations: (groupId: string) =>
+    request<{ success: boolean; data: PendingInvitation[] }>(`/groups/${groupId}/invitations`),
+  cancelInvitation: (groupId: string, invitationId: string) =>
+    request(`/groups/${groupId}/invitations/${invitationId}`, { method: 'DELETE' }),
+  activate: (groupId: string) =>
+    request<{ success: boolean; message: string }>(`/groups/${groupId}/activate`, { method: 'POST' }),
   payoutOrder: (groupId: string) =>
     request<{ success: boolean; data: PayoutOrderData }>(`/groups/${groupId}/payout-order`),
   proposePayoutOrder: (groupId: string, body: { newOrder?: { userId: string; payoutOrder: number }[]; alphabetical?: boolean }) =>
@@ -122,13 +128,50 @@ export const groups = {
   setPermission: (groupId: string, userId: string, permission: 'approver', grant: boolean) =>
     request<{ success: boolean; message: string }>(
       `/groups/${groupId}/members/${userId}/permissions`, { method: 'POST', body: JSON.stringify({ permission, grant }) }),
-  disbursePayout: (groupId: string, payoutScheduleId: string) =>
-    request<{ success: boolean; message: string; data: { netPayout: number; feeCharged: number } }>(
-      `/groups/${groupId}/payouts/${payoutScheduleId}/disburse`, { method: 'POST' }),
+  disbursePayout: (groupId: string, payoutScheduleId: string, body?: { partialAmount?: number }) =>
+    request<DisbursePayoutResponse>(
+      `/groups/${groupId}/payouts/${payoutScheduleId}/disburse`,
+      { method: 'POST', body: JSON.stringify(body || {}) }
+    ),
   approvePayout: (groupId: string, payoutScheduleId: string, action: 'approved' | 'rejected', comment?: string) =>
     request<{ success: boolean; message: string }>(
       `/groups/${groupId}/payouts/${payoutScheduleId}/approve`, { method: 'POST', body: JSON.stringify({ action, comment }) }),
+  getPayoutDebts: (groupId: string) =>
+    request<{ success: boolean; data: PayoutDebt[] }>(`/groups/${groupId}/payout-debts`),
+  payPayoutDebt: (groupId: string, debtId: string) =>
+    request<{ success: boolean; message: string; data: { netPayout: number; feeCharged: number } }>(
+      `/groups/${groupId}/payout-debts/${debtId}/pay`, { method: 'POST' }),
 };
+
+export interface DisbursePayoutResponse {
+  success: boolean;
+  warning?: boolean;
+  message?: string;
+  data?: {
+    netPayout: number;
+    feeCharged: number;
+    isPartial?: boolean;
+    availableBalance?: number;
+    expectedAmount?: number;
+  };
+}
+
+export interface PayoutDebt {
+  id: string;
+  groupId: string;
+  payoutScheduleId: string;
+  recipientUserId: string;
+  cycleNumber: number;
+  amountOwed: number;
+  amountPaid: number;
+  status: 'outstanding' | 'paid';
+  createdAt: string;
+  paidAt: string | null;
+  firstName: string;
+  lastName: string;
+  scheduledDate: string;
+  expectedAmount: number;
+}
 
 export interface NextPayoutApproval {
   payoutScheduleId: string;
@@ -556,6 +599,7 @@ export interface Group {
 export interface GroupDetail extends Group {
   members: GroupMember[];
   myWalletBalance: number;
+  pendingInvitationsCount?: number;
 }
 
 export interface GroupMember {
@@ -747,6 +791,15 @@ export interface AuditLog {
   entityId?: string;
   details?: string;
   createdAt: string;
+}
+
+export interface PendingInvitation {
+  id: string;
+  email: string;
+  status: 'pending';
+  createdAt: string;
+  expiresAt: string;
+  invitedBy: { firstName: string; lastName: string };
 }
 
 export interface GroupInvitation {

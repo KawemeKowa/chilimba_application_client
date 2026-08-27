@@ -44,7 +44,7 @@ export default function ForgotPasswordPage() {
               <CheckCircle className="mx-auto mb-4 text-teal-600" size={48} />
               <h2 className="text-lg font-semibold text-gray-900 mb-2">Check your inbox</h2>
               <p className="text-sm text-gray-600 mb-6">
-                If <span className="font-medium">{email}</span> is registered, you&apos;ll receive a
+                If <span className="font-medium">{email}</span>{' '}is registered, you&apos;ll receive a
                 password reset link shortly. Check your spam folder if it doesn&apos;t arrive within
                 a few minutes.
               </p>
