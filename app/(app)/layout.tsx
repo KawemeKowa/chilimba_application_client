@@ -23,17 +23,22 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-slate-900">
       <Navbar onMenuToggle={() => setSidebarOpen(true)} />
-      {user.status === 'pending_verification' && (
+      {!user.idVerified && (
         <div className="bg-amber-400 dark:bg-amber-600 text-white px-6 py-3 flex items-center justify-between">
-          <div>
-            <span className="font-medium">Status: </span>
-            <span>Your account is pending verification by our team. Ensure your profile is complete to speed up the process.</span>
+          <div className="min-w-0">
+            {user.kycSubmittedAt && !user.kycRejectionReason ? (
+              <span>Your identity documents are <span className="font-medium">under review</span>. We&apos;ll notify you once approved.</span>
+            ) : user.kycRejectionReason ? (
+              <span>Your identity verification was <span className="font-medium">rejected</span>. Please resubmit your documents.</span>
+            ) : (
+              <span><span className="font-medium">Verify your identity</span> to activate your account — upload your national ID on your profile.</span>
+            )}
           </div>
           <button
             onClick={() => router.push('/profile')}
             className="bg-teal-600 text-white text-sm font-medium px-4 py-1.5 rounded-lg hover:bg-teal-700 cursor-pointer shrink-0 ml-4"
           >
-            View Profile
+            {user.kycSubmittedAt && !user.kycRejectionReason ? 'View Profile' : 'Verify Now'}
           </button>
         </div>
       )}

@@ -72,6 +72,8 @@ export const auth = {
   me: () => request<{ success: boolean; data: User }>('/auth/me'),
   updateMe: (body: FormData) =>
     request('/auth/me', { method: 'PATCH', body }),
+  submitKyc: (body: FormData) =>
+    request<{ success: boolean; message: string }>('/auth/kyc', { method: 'POST', body }),
   changePassword: (currentPassword: string, newPassword: string) =>
     request('/auth/change-password', {
       method: 'POST',
@@ -379,7 +381,7 @@ export const admin = {
       return request<PaginatedResponse<User>>(`/admin/users${q}`);
     },
     get: (userId: string) =>
-      request<{ success: boolean; data: User }>(`/admin/users/${userId}`),
+      request<{ success: boolean; data: AdminUserDetail }>(`/admin/users/${userId}`),
     updateStatus: (userId: string, status: string, reason?: string) =>
       request(`/admin/users/${userId}/status`, {
         method: 'PATCH',
@@ -387,6 +389,8 @@ export const admin = {
       }),
     verify: (userId: string) =>
       request(`/admin/users/${userId}/verify`, { method: 'POST' }),
+    rejectKyc: (userId: string, reason: string) =>
+      request(`/admin/users/${userId}/reject-kyc`, { method: 'POST', body: JSON.stringify({ reason }) }),
   },
   groups: {
     list: (params?: Record<string, string>) => {
@@ -489,6 +493,36 @@ export interface User {
   dateOfBirth?: string;
   photoUrl?: string;
   createdAt?: string;
+  // KYC
+  idType?: 'national_id' | 'passport' | 'drivers_license';
+  idNumber?: string;
+  idVerified?: boolean;
+  idFrontUrl?: string;
+  idBackUrl?: string;
+  kycSubmittedAt?: string;
+  kycRejectionReason?: string;
+}
+
+// Admin view of a user (snake_case straight from the API)
+export interface AdminUserDetail {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone?: string;
+  role: string;
+  status: string;
+  date_of_birth?: string;
+  id_type?: string;
+  id_number?: string;
+  id_verified?: boolean;
+  id_front_url?: string;
+  id_back_url?: string;
+  kyc_submitted_at?: string;
+  kyc_rejection_reason?: string;
+  profile_photo_url?: string;
+  created_at?: string;
+  groups?: { id: string; name: string; role: string; status: string; joined_at: string }[];
 }
 
 export interface Group {

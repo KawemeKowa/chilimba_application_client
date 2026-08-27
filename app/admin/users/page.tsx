@@ -2,15 +2,19 @@
 
 import { useEffect, useState } from 'react';
 import { admin } from '@/lib/api';
-import type { User, PaginatedResponse } from '@/lib/api';
+import type { User, PaginatedResponse, AdminUserDetail } from '@/lib/api';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge, statusVariant } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
-import { Input, Select, Textarea } from '@/components/ui/Input';
+import { Select, Textarea } from '@/components/ui/Input';
 import { Pagination } from '@/components/ui/Pagination';
 import { PageSpinner } from '@/components/ui/Spinner';
-import { Search, UserCheck, Ban, ShieldCheck } from 'lucide-react';
+import { Search, UserCheck, Ban, ShieldCheck, IdCard } from 'lucide-react';
+
+const ID_TYPE_LABEL: Record<string, string> = {
+  national_id: 'National ID (NRC)', drivers_license: "Driver's Licence", passport: 'Passport',
+};
 
 export default function AdminUsersPage() {
   const [data, setData] = useState<PaginatedResponse<User> | null>(null);
@@ -24,6 +28,10 @@ export default function AdminUsersPage() {
   const [newStatus, setNewStatus] = useState('suspended');
   const [reason, setReason] = useState('');
   const [acting, setActing] = useState(false);
+  // KYC review
+  const [detail, setDetail] = useState<AdminUserDetail | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [rejecting, setRejecting] = useState(false);
 
   const load = (p = 1) => {
     setLoading(true);
@@ -42,6 +50,11 @@ export default function AdminUsersPage() {
     setActionType(type);
     setActionOpen(true);
     setReason('');
+    setDetail(null);
+    if (type === 'verify') {
+      setDetailLoading(true);
+      admin.users.get(u.id).then(r => setDetail(r.data)).finally(() => setDetailLoading(false));
+    }
   };
 
   const handleAction = async () => {
@@ -57,6 +70,18 @@ export default function AdminUsersPage() {
       load(page);
     } finally {
       setActing(false);
+    }
+  };
+
+  const handleReject = async () => {
+    if (!selectedUser || !reason.trim()) return;
+    setRejecting(true);
+    try {
+      await admin.users.rejectKyc(selectedUser.id, reason.trim());
+      setActionOpen(false);
+      load(page);
+    } finally {
+      setRejecting(false);
     }
   };
 
@@ -125,7 +150,7 @@ export default function AdminUsersPage() {
                         <div className="flex gap-1.5">
                           {u.status === 'pending_verification' && (
                             <Button size="sm" variant="outline" onClick={() => openAction(u, 'verify')} className="text-green-600 border-green-300">
-                              <ShieldCheck size={13} /> Verify
+                              <IdCard size={13} /> Review ID
                             </Button>
                           )}
                           {u.status === 'active' && (
@@ -154,16 +179,46 @@ export default function AdminUsersPage() {
         )}
       </Card>
 
-      <Modal open={actionOpen} onClose={() => setActionOpen(false)} title={actionType === 'verify' ? 'Verify User' : 'Update User Status'} size="sm">
+      <Modal open={actionOpen} onClose={() => setActionOpen(false)} title={actionType === 'verify' ? 'Review Identity Documents' : 'Update User Status'} size={actionType === 'verify' ? 'lg' : 'sm'}>
         {actionType === 'verify' ? (
           <div className="space-y-4">
             <p className="text-sm text-gray-600">
-              Are you sure you want to KYC-verify <strong>{selectedUser?.firstName} {selectedUser?.lastName}</strong>?
-              This will activate their account.
+              Reviewing <strong>{selectedUser?.firstName} {selectedUser?.lastName}</strong> — approving activates their account.
             </p>
-            <div className="flex justify-end gap-3">
+            {detailLoading ? (
+              <p className="text-sm text-gray-500 text-center py-8">Loading documents…</p>
+            ) : !detail?.kyc_submitted_at && !detail?.id_front_url ? (
+              <div className="p-4 rounded-lg bg-amber-50 border border-amber-200 text-sm text-amber-700">
+                This user hasn&apos;t submitted identity documents yet. You can still verify them manually, but there&apos;s nothing to review.
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div><span className="text-gray-500">ID type</span><p className="font-medium">{ID_TYPE_LABEL[detail?.id_type || ''] || detail?.id_type || '—'}</p></div>
+                  <div><span className="text-gray-500">ID number</span><p className="font-medium">{detail?.id_number || '—'}</p></div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  {[['Front', detail?.id_front_url], ['Back', detail?.id_back_url]].map(([label, url]) => (
+                    <div key={label as string}>
+                      <p className="text-xs text-gray-500 mb-1">{label}</p>
+                      {url ? (
+                        <a href={url as string} target="_blank" rel="noopener noreferrer">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={url as string} alt={`ID ${label}`} className="w-full h-40 object-cover rounded-lg border border-gray-200 hover:opacity-90" />
+                        </a>
+                      ) : <div className="w-full h-40 rounded-lg border border-dashed border-gray-300 flex items-center justify-center text-xs text-gray-400">Not provided</div>}
+                    </div>
+                  ))}
+                </div>
+                <Textarea label="Rejection reason (required to reject)" value={reason} onChange={e => setReason(e.target.value)} placeholder="e.g. ID photo is blurry / number doesn't match" />
+              </div>
+            )}
+            <div className="flex justify-end gap-3 pt-1">
               <Button variant="secondary" onClick={() => setActionOpen(false)}>Cancel</Button>
-              <Button onClick={handleAction} loading={acting}><ShieldCheck size={14} /> Verify User</Button>
+              <Button variant="outline" onClick={handleReject} loading={rejecting} disabled={!reason.trim()} className="text-red-600 border-red-300 hover:bg-red-50">
+                Reject
+              </Button>
+              <Button onClick={handleAction} loading={acting}><ShieldCheck size={14} /> Approve &amp; Activate</Button>
             </div>
           </div>
         ) : (

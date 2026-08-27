@@ -15,6 +15,13 @@ function normalizeUser(u: Record<string, unknown>): User {
     dateOfBirth: (u.dateOfBirth || u.date_of_birth) as string | undefined,
     photoUrl: (u.photoUrl || u.profile_photo_url) as string | undefined,
     createdAt: (u.createdAt || u.created_at) as string | undefined,
+    idType: (u.idType || u.id_type) as User['idType'],
+    idNumber: (u.idNumber || u.id_number) as string | undefined,
+    idVerified: (u.idVerified ?? u.id_verified) as boolean | undefined,
+    idFrontUrl: (u.idFrontUrl || u.id_front_url) as string | undefined,
+    idBackUrl: (u.idBackUrl || u.id_back_url) as string | undefined,
+    kycSubmittedAt: (u.kycSubmittedAt || u.kyc_submitted_at) as string | undefined,
+    kycRejectionReason: (u.kycRejectionReason || u.kyc_rejection_reason) as string | undefined,
   };
 }
 

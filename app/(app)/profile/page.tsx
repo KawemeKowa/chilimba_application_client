@@ -8,7 +8,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
-import { User, Lock, CheckCircle, Smartphone, Building2, Wallet as WalletIcon, Users } from 'lucide-react';
+import { User, Lock, CheckCircle, Smartphone, Building2, Wallet as WalletIcon, Users, ShieldCheck, Clock, AlertTriangle, Upload, IdCard } from 'lucide-react';
 
 const PROVIDERS = [
   { value: 'mtn',    label: 'MTN Mobile Money' },
@@ -107,11 +107,53 @@ export default function ProfilePage() {
     } finally { setSavingBank(false); }
   };
 
+  // ── KYC / identity verification ──
+  const [kyc, setKyc] = useState({ idType: 'national_id' as 'national_id' | 'passport' | 'drivers_license', idNumber: '' });
+  const [idFront, setIdFront] = useState<File | null>(null);
+  const [idBack, setIdBack] = useState<File | null>(null);
+  const [kycSubmitting, setKycSubmitting] = useState(false);
+  const [kycMsg, setKycMsg] = useState('');
+
+  useEffect(() => {
+    if (user) setKyc({ idType: user.idType || 'national_id', idNumber: user.idNumber || '' });
+  }, [user]);
+
+  const kycState: 'verified' | 'pending' | 'rejected' | 'unsubmitted' =
+    user?.idVerified ? 'verified'
+    : user?.kycRejectionReason ? 'rejected'
+    : user?.kycSubmittedAt ? 'pending'
+    : 'unsubmitted';
+
+  const handleKyc = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setKycSubmitting(true);
+    setKycMsg('');
+    try {
+      const fd = new FormData();
+      fd.append('idType', kyc.idType);
+      fd.append('idNumber', kyc.idNumber);
+      if (idFront) fd.append('idFront', idFront);
+      if (idBack) fd.append('idBack', idBack);
+      await auth.submitKyc(fd);
+      setKycMsg('Your ID has been submitted for review.');
+      setIdFront(null); setIdBack(null);
+      await refresh();
+    } catch (err: unknown) {
+      setKycMsg(err instanceof Error ? err.message : 'Submission failed');
+    } finally { setKycSubmitting(false); }
+  };
+
   const roleColors: Record<string, string> = {
     super_admin: 'bg-purple-100 text-purple-700',
     admin: 'bg-blue-100 text-blue-700',
     member: 'bg-teal-100 text-teal-700',
   };
+
+  const ID_TYPES = [
+    { value: 'national_id', label: 'National ID (NRC)' },
+    { value: 'drivers_license', label: "Driver's Licence" },
+    { value: 'passport', label: 'Passport' },
+  ] as const;
 
   return (
     <div className="space-y-6 max-w-2xl">
@@ -139,6 +181,78 @@ export default function ProfilePage() {
             </div>
           </div>
         </div>
+      </Card>
+
+      {/* Identity verification (KYC) */}
+      <Card>
+        <h2 className="font-semibold text-gray-900 dark:text-slate-100 mb-1 flex items-center gap-2">
+          <IdCard size={18} /> Identity Verification
+        </h2>
+        <p className="text-sm text-gray-500 dark:text-slate-400 mb-4">
+          Verify your identity to activate your account. An admin reviews your documents before approval.
+        </p>
+
+        {kycState === 'verified' && (
+          <div className="flex items-center gap-3 p-4 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
+            <ShieldCheck size={22} className="text-green-600 dark:text-green-400 flex-shrink-0" />
+            <div>
+              <p className="text-sm font-semibold text-green-800 dark:text-green-300">Your identity is verified</p>
+              <p className="text-xs text-green-700 dark:text-green-400">{ID_TYPES.find(t => t.value === user?.idType)?.label} · {user?.idNumber}</p>
+            </div>
+          </div>
+        )}
+
+        {kycState === 'pending' && (
+          <div className="flex items-center gap-3 p-4 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+            <Clock size={22} className="text-amber-600 dark:text-amber-400 flex-shrink-0" />
+            <div>
+              <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">Under review</p>
+              <p className="text-xs text-amber-700 dark:text-amber-400">
+                Your documents were submitted and are awaiting admin approval. We&apos;ll notify you once reviewed.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {(kycState === 'unsubmitted' || kycState === 'rejected') && (
+          <form onSubmit={handleKyc} className="space-y-4">
+            {kycState === 'rejected' && (
+              <div className="flex items-start gap-3 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
+                <AlertTriangle size={18} className="text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-semibold text-red-700 dark:text-red-400">Your previous submission was rejected</p>
+                  <p className="text-xs text-red-600 dark:text-red-400">{user?.kycRejectionReason} Please correct and resubmit.</p>
+                </div>
+              </div>
+            )}
+            {kycMsg && (
+              <div className={`p-3 rounded-lg text-sm flex items-center gap-2 ${kycMsg.includes('submitted') ? 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400' : 'bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400'}`}>
+                {kycMsg.includes('submitted') && <CheckCircle size={16} />}{kycMsg}
+              </div>
+            )}
+            <div className="flex flex-col gap-1">
+              <label className="text-sm font-medium text-gray-700 dark:text-slate-300">ID type</label>
+              <select
+                value={kyc.idType}
+                onChange={e => setKyc(k => ({ ...k, idType: e.target.value as typeof k.idType }))}
+                className="w-full border border-gray-300 dark:border-slate-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white dark:bg-slate-700 dark:text-slate-100"
+              >
+                {ID_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+              </select>
+            </div>
+            <Input label="ID number" value={kyc.idNumber}
+              onChange={e => setKyc(k => ({ ...k, idNumber: e.target.value }))}
+              placeholder="e.g. 123456/78/9" required />
+            <div className="grid grid-cols-2 gap-4">
+              <FileField label="ID front image" file={idFront} existing={user?.idFrontUrl} onPick={setIdFront} />
+              <FileField label="ID back image" file={idBack} existing={user?.idBackUrl} onPick={setIdBack} />
+            </div>
+            <p className="text-xs text-gray-400 dark:text-slate-500">Upload clear photos of both sides. JPEG/PNG, max 5 MB each.</p>
+            <Button type="submit" loading={kycSubmitting}>
+              <Upload size={14} /> {kycState === 'rejected' ? 'Resubmit for review' : 'Submit for review'}
+            </Button>
+          </form>
+        )}
       </Card>
 
       {/* Balances — total + breakdown per group */}
@@ -278,6 +392,35 @@ export default function ProfilePage() {
           <Button type="submit" loading={savingBank}>Save Bank Details</Button>
         </form>
       </Card>
+    </div>
+  );
+}
+
+// Image picker with preview for KYC uploads
+function FileField({ label, file, existing, onPick }: {
+  label: string; file: File | null; existing?: string; onPick: (f: File | null) => void;
+}) {
+  const preview = file ? URL.createObjectURL(file) : existing;
+  return (
+    <div className="flex flex-col gap-1">
+      <label className="text-sm font-medium text-gray-700 dark:text-slate-300">{label}</label>
+      <label className="relative flex flex-col items-center justify-center h-28 border-2 border-dashed border-gray-300 dark:border-slate-600 rounded-lg cursor-pointer hover:border-teal-400 dark:hover:border-teal-500 overflow-hidden bg-gray-50 dark:bg-slate-700/40">
+        {preview ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={preview} alt={label} className="absolute inset-0 w-full h-full object-cover" />
+        ) : (
+          <>
+            <Upload size={20} className="text-gray-400 dark:text-slate-500" />
+            <span className="text-xs text-gray-400 dark:text-slate-500 mt-1">Tap to upload</span>
+          </>
+        )}
+        <input
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          className="hidden"
+          onChange={e => onPick(e.target.files?.[0] ?? null)}
+        />
+      </label>
     </div>
   );
 }
