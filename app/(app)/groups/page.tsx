@@ -33,6 +33,15 @@ export default function GroupsPage() {
   const [lateFeeType, setLateFeeType] = useState<'none' | 'fixed' | 'percentage'>('none');
   const [approvalMode, setApprovalMode] = useState<'admin' | 'none'>('admin');
 
+  // Extracted outside JSX to avoid Turbopack's JSX parser choking on `|` in type casts
+  const handleLateFeeTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) =>
+    setLateFeeType(e.target.value as 'none' | 'fixed' | 'percentage');
+  const handleApprovalModeChange = (e: React.ChangeEvent<HTMLSelectElement>) =>
+    setApprovalMode(e.target.value as 'admin' | 'none');
+  const approvalModeDesc = approvalMode === 'admin'
+    ? 'The group admin manually triggers each payout. No second approval or maker-checker required.'
+    : 'Payouts are released automatically on the scheduled payout day. Best for high-trust groups.';
+
   const load = () =>
     groups.list().then(r => setMyGroups(r.data)).finally(() => setLoading(false));
 
@@ -185,7 +194,7 @@ export default function GroupsPage() {
               </p>
               <div className="grid grid-cols-2 gap-3">
                 <Select label="Late payment penalty" name="lateFeeType" value={lateFeeType}
-                  onChange={e => setLateFeeType(e.target.value as 'none' | 'fixed' | 'percentage')}>
+                  onChange={handleLateFeeTypeChange}>
                   <option value="none">None</option>
                   <option value="fixed">Fixed amount</option>
                   <option value="percentage">Percentage of contribution</option>
@@ -218,14 +227,12 @@ export default function GroupsPage() {
             <legend className="px-2 text-sm font-semibold text-gray-700 dark:text-slate-200">3. Payout Approval</legend>
             <div className="space-y-3">
               <Select label="Payout approval" name="payoutApprovalMode" value={approvalMode}
-                onChange={e => setApprovalMode(e.target.value as ‘admin’ | ‘none’)}>
+                onChange={handleApprovalModeChange}>
                 <option value="admin">Admin Approval — group admin triggers each payout</option>
                 <option value="none">No Approval — system pays out automatically on payout day</option>
               </Select>
               <p className="text-xs text-gray-500 dark:text-slate-400 bg-gray-50 dark:bg-slate-700/40 rounded-lg p-2.5">
-                {approvalMode === ‘admin’
-                  ? ‘The group admin manually triggers each payout. No second approval or maker-checker required.’
-                  : ‘Payouts are released automatically on the scheduled payout day. Best for high-trust groups.’}
+                {approvalModeDesc}
               </p>
               <div className="border-t border-gray-100 dark:border-slate-700 pt-3 mt-1">
                 <Input label="Approvals needed for a withdrawal" name="minApprovalsWithdrawal" type="number" min="1" placeholder="2" defaultValue="2" required />
