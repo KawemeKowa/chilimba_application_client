@@ -6,6 +6,7 @@ import { messages as messagesApi } from '@/lib/api';
 import type { Message, PaginatedResponse } from '@/lib/api';
 import { Button } from '@/components/ui/Button';
 import { PageSpinner } from '@/components/ui/Spinner';
+import { PageHeader } from '@/components/layout/PageHeader';
 import { useAuth } from '@/contexts/AuthContext';
 import { Send, Reply, Trash2, MessageSquare } from 'lucide-react';
 
@@ -51,12 +52,14 @@ export default function MessagesPage() {
 
   return (
     <div className="space-y-4 flex flex-col" style={{ height: 'calc(100vh - 200px)' }}>
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Group Messages</h1>
-        <p className="text-gray-500 mt-1">Discuss and coordinate with your group</p>
-      </div>
+      <PageHeader
+        title="Group Messages"
+        backHref={`/groups/${groupId}`}
+        backLabel="group"
+        subtitle="Discuss and coordinate with your group"
+      />
 
-      <div className="flex-1 bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden flex flex-col">
+      <div className="flex-1 bg-white dark:bg-slate-800 rounded-xl border border-gray-100 shadow-sm overflow-hidden flex flex-col">
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
           {topLevel.length === 0 && (
             <div className="flex flex-col items-center justify-center h-full text-gray-400 py-16">

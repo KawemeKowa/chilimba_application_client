@@ -10,6 +10,7 @@ import { Badge, statusVariant } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
 import { Input, Textarea, Select } from '@/components/ui/Input';
 import { PageSpinner } from '@/components/ui/Spinner';
+import { PageHeader } from '@/components/layout/PageHeader';
 import { Gift, Plus, Users, Target } from 'lucide-react';
 
 const CATEGORIES = ['funeral', 'wedding', 'emergency', 'medical', 'education', 'other'];
@@ -84,15 +85,17 @@ export default function CommitteesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Committees</h1>
-          <p className="text-gray-500 mt-1">Crowdfunding campaigns for group members</p>
-        </div>
-        <Button onClick={() => { setError(''); setCreateOpen(true); }}>
-          <Plus size={16} /> Create Campaign
-        </Button>
-      </div>
+      <PageHeader
+        title="Committees"
+        backHref={`/groups/${groupId}`}
+        backLabel="group"
+        subtitle="Crowdfunding campaigns for group members"
+        actions={
+          <Button onClick={() => { setError(''); setCreateOpen(true); }}>
+            <Plus size={16} /> Create Campaign
+          </Button>
+        }
+      />
 
       {data?.data.length === 0 ? (
         <Card className="text-center py-12">

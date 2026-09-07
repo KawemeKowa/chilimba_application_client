@@ -19,6 +19,30 @@
   --border: #334155;
   --muted: #94a3b8;
   --primary-light: #042f2e;
+
+  /* ── Gray palette, redefined for dark mode ────────────────────────────────
+   * Tailwind v4 emits `.text-gray-500 { color: var(--color-gray-500) }`, so
+   * redefining these variables changes what "gray" means on a dark ground
+   * instead of requiring a dark: variant on all ~600 gray utilities in the
+   * app. Explicit `dark:` classes still win normally — this only changes the
+   * fallback, so anything already handled stays exactly as it was.
+   *
+   * The split is clean in this codebase: 50–300 are used for backgrounds,
+   * borders, and muted empty-state icons; 400–900 are text only. So the low
+   * shades go darker and the high shades go lighter, each in the direction
+   * that keeps its meaning.
+   */
+  --color-gray-50:  #1e293b;  /* panel + hover backgrounds  (slate-800) */
+  --color-gray-100: #334155;  /* borders, hover fills       (slate-700) */
+  --color-gray-200: #334155;  /* borders                    (slate-700) */
+  --color-gray-300: #475569;  /* input borders, muted icons (slate-600) */
+
+  --color-gray-400: #94a3b8;  /* hints, placeholders        (slate-400) */
+  --color-gray-500: #cbd5e1;  /* secondary text             (slate-300) */
+  --color-gray-600: #e2e8f0;  /* body text                  (slate-200) */
+  --color-gray-700: #e2e8f0;  /* labels                     (slate-200) */
+  --color-gray-800: #f1f5f9;  /* strong text                (slate-100) */
+  --color-gray-900: #f8fafc;  /* headings, near white       (slate-50)  */
 }
 
 @theme inline {

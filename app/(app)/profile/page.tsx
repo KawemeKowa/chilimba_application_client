@@ -359,7 +359,7 @@ export default function ProfilePage() {
             <select
               value={momoForm.provider}
               onChange={e => setMomoForm(f => ({ ...f, provider: e.target.value as 'mtn' | 'airtel' | 'zamtel' }))}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white"
+              className="w-full border border-gray-300 dark:border-slate-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100"
             >
               {PROVIDERS.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
             </select>

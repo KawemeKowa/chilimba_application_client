@@ -66,7 +66,7 @@ export default function NotificationsPage() {
           <div
             key={n.id}
             onClick={() => !n.isRead && markRead(n.id)}
-            className={`bg-white border rounded-xl px-5 py-4 flex items-start gap-4 cursor-pointer hover:shadow-sm transition-shadow ${!n.isRead ? 'border-teal-200 bg-teal-50/30' : 'border-gray-100'}`}
+            className={`bg-white dark:bg-slate-800 border rounded-xl px-5 py-4 flex items-start gap-4 cursor-pointer hover:shadow-sm transition-shadow ${!n.isRead ? 'border-teal-200 dark:border-teal-700 bg-teal-50/30 dark:bg-teal-900/20' : 'border-gray-100'}`}
           >
             <div className={`mt-1 flex-shrink-0 ${n.isRead ? 'text-gray-300' : 'text-teal-500'}`}>
               {n.isRead ? <Bell size={18} /> : <Circle size={10} className="fill-teal-500 mt-1" />}

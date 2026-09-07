@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/Button';
 import { Badge, statusVariant } from '@/components/ui/Badge';
 import { Pagination } from '@/components/ui/Pagination';
 import { PageSpinner } from '@/components/ui/Spinner';
+import { PageHeader } from '@/components/layout/PageHeader';
 import { useAuth } from '@/contexts/AuthContext';
 import { Coins, CheckCircle } from 'lucide-react';
 
@@ -55,13 +56,12 @@ export default function ContributionsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100">Contributions</h1>
-        <p className="text-gray-500 dark:text-slate-400 mt-1">
-          Every member&apos;s monthly contribution for this group. Pay your own row below —
-          the money comes out of your group wallet, so top that up first.
-        </p>
-      </div>
+      <PageHeader
+        title="Contributions"
+        backHref={`/groups/${groupId}`}
+        backLabel="group"
+        subtitle="Every member's monthly contribution for this group. Pay your own row below — the money comes out of your group wallet, so top that up first."
+      />
 
       {/* What you personally still owe — the reason most people open this page */}
       {myOutstanding.length > 0 && (

@@ -11,6 +11,7 @@ import { Modal } from '@/components/ui/Modal';
 import { Input, Textarea } from '@/components/ui/Input';
 import { Pagination } from '@/components/ui/Pagination';
 import { PageSpinner } from '@/components/ui/Spinner';
+import { PageHeader } from '@/components/layout/PageHeader';
 import { useAuth } from '@/contexts/AuthContext';
 import { ArrowLeftRight, Plus, ThumbsUp, ThumbsDown } from 'lucide-react';
 
@@ -62,15 +63,17 @@ export default function WithdrawalsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Withdrawals</h1>
-          <p className="text-gray-500 mt-1">Request and vote on group withdrawals</p>
-        </div>
-        <Button onClick={() => { setError(''); setRequestOpen(true); }}>
-          <Plus size={16} /> Request Withdrawal
-        </Button>
-      </div>
+      <PageHeader
+        title="Withdrawals"
+        backHref={`/groups/${groupId}`}
+        backLabel="group"
+        subtitle="Request and vote on group withdrawals"
+        actions={
+          <Button onClick={() => { setError(''); setRequestOpen(true); }}>
+            <Plus size={16} /> Request Withdrawal
+          </Button>
+        }
+      />
 
       <div className="space-y-4">
         {data?.data.length === 0 && (
