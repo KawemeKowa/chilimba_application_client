@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { contributions } from '@/lib/api';
 import type { Contribution, PaginatedResponse } from '@/lib/api';
@@ -17,6 +18,7 @@ export default function ContributionsPage() {
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [paying, setPaying] = useState<string | null>(null);
+  const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
 
   const load = (p = 1) => {
     setLoading(true);
@@ -29,9 +31,13 @@ export default function ContributionsPage() {
 
   const handlePay = async (id: string) => {
     setPaying(id);
+    setMessage(null);
     try {
       await contributions.pay(id);
+      setMessage({ ok: true, text: 'Contribution paid from your group wallet.' });
       load(page);
+    } catch (err: unknown) {
+      setMessage({ ok: false, text: err instanceof Error ? err.message : 'Payment failed' });
     } finally {
       setPaying(null);
     }
@@ -42,9 +48,24 @@ export default function ContributionsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Contributions</h1>
-        <p className="text-gray-500 mt-1">Track all contributions for this group</p>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100">Contributions</h1>
+        <p className="text-gray-500 dark:text-slate-400 mt-1">
+          Track all contributions for this group. Paying draws from your group wallet — top it up first.
+        </p>
       </div>
+
+      {message && (
+        <div className={`p-3 rounded-lg text-sm border flex items-center justify-between gap-4 ${message.ok
+          ? 'bg-teal-50 dark:bg-teal-900/20 border-teal-200 dark:border-teal-800 text-teal-700 dark:text-teal-300'
+          : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-600 dark:text-red-400'}`}>
+          <span>{message.text}</span>
+          {!message.ok && (
+            <Link href={`/wallet?deposit=${groupId}`} className="flex-shrink-0">
+              <Button size="sm" variant="outline">Top Up</Button>
+            </Link>
+          )}
+        </div>
+      )}
 
       <Card padding={false}>
         <div className="overflow-x-auto">
