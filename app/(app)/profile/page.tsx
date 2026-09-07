@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { auth, payments, wallet } from '@/lib/api';
+import { normalizeZmPhone, formatZmPhone } from '@/lib/phone';
 import type { PaymentMethod, Wallet } from '@/lib/api';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -85,10 +86,17 @@ export default function ProfilePage() {
 
   const handleSaveMomo = async (e: React.FormEvent) => {
     e.preventDefault();
+    // Payouts are sent to this number via Lipila, which needs 260XXXXXXXXX.
+    const normalized = normalizeZmPhone(momoForm.mobileNumber);
+    if (!normalized) {
+      setMomoMsg('Enter a valid Zambian mobile number, e.g. 0977123456.');
+      return;
+    }
+    setMomoForm(f => ({ ...f, mobileNumber: normalized }));
     setSavingMomo(true);
     setMomoMsg('');
     try {
-      await payments.saveMobileMoney(momoForm.mobileNumber, momoForm.provider);
+      await payments.saveMobileMoney(normalized, momoForm.provider);
       setMomoMsg('Mobile money details saved.');
     } catch (err: unknown) {
       setMomoMsg(err instanceof Error ? err.message : 'Failed to save');
@@ -356,14 +364,26 @@ export default function ProfilePage() {
               {PROVIDERS.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
             </select>
           </div>
-          <Input
-            label="Mobile number"
-            type="tel"
-            value={momoForm.mobileNumber}
-            onChange={e => setMomoForm(f => ({ ...f, mobileNumber: e.target.value }))}
-            placeholder="260971234567"
-            required
-          />
+          <div>
+            <Input
+              label="Mobile number"
+              type="tel"
+              value={momoForm.mobileNumber}
+              onChange={e => setMomoForm(f => ({ ...f, mobileNumber: e.target.value }))}
+              onBlur={() => setMomoForm(f => ({ ...f, mobileNumber: normalizeZmPhone(f.mobileNumber) ?? f.mobileNumber }))}
+              placeholder="0977123456"
+              required
+            />
+            {momoForm.mobileNumber.trim() !== '' && (
+              normalizeZmPhone(momoForm.mobileNumber)
+                ? <p className="text-xs text-gray-500 mt-1">
+                    Saved as <span className="font-medium text-gray-700">{formatZmPhone(momoForm.mobileNumber)}</span>
+                  </p>
+                : <p className="text-xs text-amber-600 mt-1">
+                    That doesn&apos;t look like a Zambian mobile number — try 0977123456.
+                  </p>
+            )}
+          </div>
           <Button type="submit" loading={savingMomo}>Save Mobile Money</Button>
         </form>
       </Card>

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { wallet, payments } from '@/lib/api';
+import { normalizeZmPhone, formatZmPhone } from '@/lib/phone';
 import type { Wallet, LipilaTransaction } from '@/lib/api';
 import { Card } from '@/components/ui/Card';
 import { Modal } from '@/components/ui/Modal';
@@ -135,6 +136,21 @@ export default function WalletPage() {
   const handleDeposit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!targetWallet) return;
+
+    // Lipila only accepts 260XXXXXXXXX — convert whatever shape was typed.
+    let normalizedPhone: string | null = null;
+    if (method === 'mobile_money') {
+      normalizedPhone = normalizeZmPhone(phone);
+      if (!normalizedPhone) {
+        setDepositResult({
+          success: false,
+          message: 'Enter a valid Zambian mobile number, e.g. 0977123456 or 260977123456.',
+        });
+        return;
+      }
+      setPhone(normalizedPhone);
+    }
+
     setDepositing(true);
     setDepositResult(null);
     try {
@@ -143,7 +159,7 @@ export default function WalletPage() {
           ? { groupId: targetWallet.groupId }
           : { walletId: targetWallet.id },
         parseFloat(amount),
-        method === 'card' ? { method: 'card' } : { method: 'mobile_money', mobileNumber: phone }
+        method === 'card' ? { method: 'card' } : { method: 'mobile_money', mobileNumber: normalizedPhone! }
       );
       setDepositResult({ success: true, message: res.message, paymentUrl: res.data.paymentUrl });
       // Card payments complete on Lipila's secure hosted checkout page — open
@@ -405,14 +421,26 @@ export default function WalletPage() {
               required
             />
             {method === 'mobile_money' && (
-              <Input
-                label="Mobile Money Number"
-                type="tel"
-                value={phone}
-                onChange={e => setPhone(e.target.value)}
-                placeholder="260971234567"
-                required
-              />
+              <div>
+                <Input
+                  label="Mobile Money Number"
+                  type="tel"
+                  value={phone}
+                  onChange={e => setPhone(e.target.value)}
+                  onBlur={() => { const n = normalizeZmPhone(phone); if (n) setPhone(n); }}
+                  placeholder="0977123456"
+                  required
+                />
+                {phone.trim() !== '' && (
+                  normalizeZmPhone(phone)
+                    ? <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">
+                        Sending to <span className="font-medium text-gray-700 dark:text-slate-300">{formatZmPhone(phone)}</span>
+                      </p>
+                    : <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                        That doesn&apos;t look like a Zambian mobile number — try 0977123456.
+                      </p>
+                )}
+              </div>
             )}
             <div className="text-xs text-gray-500 dark:text-slate-400 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-lg p-3">
               {method === 'mobile_money'
