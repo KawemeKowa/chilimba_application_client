@@ -371,6 +371,18 @@ export const wallet = {
     const q = params ? '?' + new URLSearchParams(params).toString() : '';
     return request<PaginatedResponse<Transaction>>(`/wallet/transactions${q}`);
   },
+  /** Move money from the personal wallet into one of your group wallets. */
+  transfer: (groupId: string, amount: number) =>
+    request<{
+      success: boolean; message: string;
+      data: { amount: number; currency: string; groupName: string; personalBalance: number; groupBalance: number };
+    }>('/wallet/transfer', { method: 'POST', body: JSON.stringify({ groupId, amount }) }),
+  /** Cash out from the personal wallet to mobile money or bank. */
+  withdraw: (amount: number, destination: 'mobile_money' | 'bank') =>
+    request<{
+      success: boolean; message: string;
+      data: { referenceId: string; amount: number; balance: number; currency: string };
+    }>('/wallet/withdraw', { method: 'POST', body: JSON.stringify({ amount, destination }) }),
 };
 
 // Notifications

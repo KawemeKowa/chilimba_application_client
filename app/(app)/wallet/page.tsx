@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { PageSpinner } from '@/components/ui/Spinner';
 import { Badge } from '@/components/ui/Badge';
-import { Wallet as WalletIcon, Users, TrendingUp, Plus, CheckCircle, Clock, XCircle, Smartphone, CreditCard, RefreshCw } from 'lucide-react';
+import { Wallet as WalletIcon, Users, TrendingUp, Plus, CheckCircle, Clock, XCircle, Smartphone, CreditCard, RefreshCw, Send, ArrowDownToLine, Building2 } from 'lucide-react';
 import Link from 'next/link';
 
 function statusIcon(status: string) {
@@ -46,6 +46,20 @@ export default function WalletPage() {
   const [amount, setAmount]           = useState('');
   const [phone, setPhone]             = useState('');
   const [method, setMethod]           = useState<'mobile_money' | 'card'>('mobile_money');
+
+  // Personal wallet → group transfer
+  const [transferOpen, setTransferOpen]   = useState(false);
+  const [transferGroup, setTransferGroup] = useState('');
+  const [transferAmount, setTransferAmount] = useState('');
+  const [transferring, setTransferring]   = useState(false);
+
+  // Personal wallet → mobile money / bank
+  const [withdrawOpen, setWithdrawOpen]   = useState(false);
+  const [withdrawAmount, setWithdrawAmount] = useState('');
+  const [withdrawTo, setWithdrawTo]       = useState<'mobile_money' | 'bank'>('mobile_money');
+  const [withdrawing, setWithdrawing]     = useState(false);
+
+  const [actionMsg, setActionMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [depositing, setDepositing]   = useState(false);
   const [depositResult, setDepositResult] = useState<
     { success: boolean; message: string; paymentUrl?: string | null; resolvedStatus?: 'successful' | 'failed' } | null
@@ -176,9 +190,45 @@ export default function WalletPage() {
     }
   };
 
+  const handleTransfer = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setTransferring(true);
+    setActionMsg(null);
+    try {
+      const res = await wallet.transfer(transferGroup, parseFloat(transferAmount));
+      setActionMsg({ ok: true, text: res.message });
+      setTransferOpen(false);
+      setTransferAmount('');
+      load();
+    } catch (err: unknown) {
+      setActionMsg({ ok: false, text: err instanceof Error ? err.message : 'Transfer failed' });
+    } finally {
+      setTransferring(false);
+    }
+  };
+
+  const handleWithdraw = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setWithdrawing(true);
+    setActionMsg(null);
+    try {
+      const res = await wallet.withdraw(parseFloat(withdrawAmount), withdrawTo);
+      setActionMsg({ ok: true, text: res.message });
+      setWithdrawOpen(false);
+      setWithdrawAmount('');
+      load();
+    } catch (err: unknown) {
+      setActionMsg({ ok: false, text: err instanceof Error ? err.message : 'Withdrawal failed' });
+    } finally {
+      setWithdrawing(false);
+    }
+  };
+
   if (loading) return <PageSpinner />;
 
   const total = wallets.reduce((sum, w) => sum + Number(w.balance), 0);
+  const personalWallet = wallets.find(w => w.type === 'personal');
+  const groupWallets = wallets.filter(w => w.type === 'group');
 
   const monthly = targetWallet?.monthlyAmount ?? 0;
   const preloadOptions = monthly > 0
@@ -195,6 +245,14 @@ export default function WalletPage() {
         <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100">My Wallets</h1>
         <p className="text-gray-500 dark:text-slate-400 mt-1">Manage balances and top up via mobile money</p>
       </div>
+
+      {actionMsg && (
+        <div className={`p-3 rounded-lg text-sm border ${actionMsg.ok
+          ? 'bg-teal-50 dark:bg-teal-900/20 border-teal-200 dark:border-teal-800 text-teal-700 dark:text-teal-300'
+          : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-600 dark:text-red-400'}`}>
+          {actionMsg.text}
+        </div>
+      )}
 
       {/* Total balance */}
       <div className="bg-gradient-to-r from-teal-600 to-teal-700 rounded-2xl p-6 text-white">
@@ -229,15 +287,42 @@ export default function WalletPage() {
                   : <span className="text-amber-600 dark:text-amber-400 font-medium">top up needed</span>}
               </p>
             )}
-            <div className="mt-4 flex gap-2">
-              <Link href={`/transactions?walletId=${w.id}`} className="flex-1">
-                <Button variant="outline" size="sm" className="w-full">
-                  <TrendingUp size={14} /> Transactions
+            <div className="mt-4 space-y-2">
+              <div className="flex gap-2">
+                <Link href={`/transactions?walletId=${w.id}`} className="flex-1">
+                  <Button variant="outline" size="sm" className="w-full">
+                    <TrendingUp size={14} /> Transactions
+                  </Button>
+                </Link>
+                <Button size="sm" onClick={() => openDeposit(w)} className="flex-1">
+                  <Plus size={14} /> Top Up
                 </Button>
-              </Link>
-              <Button size="sm" onClick={() => openDeposit(w)} className="flex-1">
-                <Plus size={14} /> Top Up
-              </Button>
+              </div>
+              {/* Personal wallet is the hub: money moves out of it to groups or back to you */}
+              {w.type === 'personal' && (
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline" size="sm" className="flex-1"
+                    disabled={groupWallets.length === 0 || w.balance <= 0}
+                    title={groupWallets.length === 0 ? 'Join a group first' : undefined}
+                    onClick={() => {
+                      setActionMsg(null);
+                      setTransferGroup(groupWallets[0]?.groupId ?? '');
+                      setTransferAmount('');
+                      setTransferOpen(true);
+                    }}
+                  >
+                    <Send size={14} /> Send to Group
+                  </Button>
+                  <Button
+                    variant="outline" size="sm" className="flex-1"
+                    disabled={w.balance <= 0}
+                    onClick={() => { setActionMsg(null); setWithdrawAmount(''); setWithdrawOpen(true); }}
+                  >
+                    <ArrowDownToLine size={14} /> Withdraw
+                  </Button>
+                </div>
+              )}
             </div>
           </Card>
         ))}
@@ -457,6 +542,131 @@ export default function WalletPage() {
             </div>
           </form>
         )}
+      </Modal>
+
+      {/* Send from personal wallet to a group */}
+      <Modal open={transferOpen} onClose={() => setTransferOpen(false)} title="Send to a Group" size="sm">
+        <form onSubmit={handleTransfer} className="space-y-4">
+          <div className="bg-gray-50 dark:bg-slate-700/50 rounded-lg p-3 text-sm flex justify-between">
+            <span className="text-gray-500 dark:text-slate-400">Personal wallet</span>
+            <span className="font-semibold text-gray-900 dark:text-slate-100">
+              {personalWallet?.currency ?? 'ZMW'} {(personalWallet?.balance ?? 0).toLocaleString('en-ZM', { minimumFractionDigits: 2 })}
+            </span>
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium text-gray-700 dark:text-slate-300">Send to</label>
+            <select
+              value={transferGroup}
+              onChange={e => setTransferGroup(e.target.value)}
+              required
+              className="w-full border border-gray-300 dark:border-slate-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500"
+            >
+              {groupWallets.map(g => (
+                <option key={g.id} value={g.groupId}>
+                  {g.groupName} — {g.currency} {g.balance.toLocaleString()}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <Input
+            label="Amount"
+            type="number" min="0.01" step="0.01"
+            max={personalWallet?.balance ?? undefined}
+            value={transferAmount}
+            onChange={e => setTransferAmount(e.target.value)}
+            placeholder="e.g. 500"
+            required
+          />
+
+          <p className="text-xs text-gray-500 dark:text-slate-400">
+            This moves money between your own wallets instantly — it does not pay a contribution.
+            Pay from the group&apos;s Contributions page once the funds are there.
+          </p>
+
+          <div className="flex gap-3 pt-1">
+            <Button type="button" variant="secondary" className="flex-1" onClick={() => setTransferOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              type="submit" className="flex-1" loading={transferring}
+              disabled={!transferGroup || !transferAmount || Number(transferAmount) <= 0
+                || Number(transferAmount) > (personalWallet?.balance ?? 0)}
+            >
+              <Send size={14} /> Send
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Withdraw from personal wallet to mobile money / bank */}
+      <Modal open={withdrawOpen} onClose={() => setWithdrawOpen(false)} title="Withdraw Money" size="sm">
+        <form onSubmit={handleWithdraw} className="space-y-4">
+          <div className="bg-gray-50 dark:bg-slate-700/50 rounded-lg p-3 text-sm flex justify-between">
+            <span className="text-gray-500 dark:text-slate-400">Available</span>
+            <span className="font-semibold text-gray-900 dark:text-slate-100">
+              {personalWallet?.currency ?? 'ZMW'} {(personalWallet?.balance ?? 0).toLocaleString('en-ZM', { minimumFractionDigits: 2 })}
+            </span>
+          </div>
+
+          <div>
+            <p className="text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Withdraw to</p>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setWithdrawTo('mobile_money')}
+                className={`flex items-center justify-center gap-2 p-3 rounded-lg border text-sm font-medium transition-colors ${
+                  withdrawTo === 'mobile_money'
+                    ? 'border-teal-500 bg-teal-50 dark:bg-teal-900/20 text-teal-700 dark:text-teal-300'
+                    : 'border-gray-200 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:border-teal-300'
+                }`}
+              >
+                <Smartphone size={16} /> Mobile Money
+              </button>
+              <button
+                type="button"
+                onClick={() => setWithdrawTo('bank')}
+                className={`flex items-center justify-center gap-2 p-3 rounded-lg border text-sm font-medium transition-colors ${
+                  withdrawTo === 'bank'
+                    ? 'border-teal-500 bg-teal-50 dark:bg-teal-900/20 text-teal-700 dark:text-teal-300'
+                    : 'border-gray-200 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:border-teal-300'
+                }`}
+              >
+                <Building2 size={16} /> Bank
+              </button>
+            </div>
+          </div>
+
+          <Input
+            label="Amount"
+            type="number" min="0.01" step="0.01"
+            max={personalWallet?.balance ?? undefined}
+            value={withdrawAmount}
+            onChange={e => setWithdrawAmount(e.target.value)}
+            placeholder="e.g. 500"
+            required
+          />
+
+          <div className="text-xs text-gray-500 dark:text-slate-400 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-lg p-3">
+            Money is sent to the {withdrawTo === 'bank' ? 'bank account' : 'mobile money number'} saved on your{' '}
+            <Link href="/profile" className="underline font-medium">profile</Link>.
+            {withdrawTo === 'bank' && ' Bank transfers can take 1–3 business days.'}
+          </div>
+
+          <div className="flex gap-3 pt-1">
+            <Button type="button" variant="secondary" className="flex-1" onClick={() => setWithdrawOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              type="submit" className="flex-1" loading={withdrawing}
+              disabled={!withdrawAmount || Number(withdrawAmount) <= 0
+                || Number(withdrawAmount) > (personalWallet?.balance ?? 0)}
+            >
+              <ArrowDownToLine size={14} /> Withdraw
+            </Button>
+          </div>
+        </form>
       </Modal>
     </div>
   );
