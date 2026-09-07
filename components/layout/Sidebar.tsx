@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import {
   LayoutDashboard, Wallet, Users, ArrowLeftRight,
   CheckSquare, Settings, X, Shield, BarChart3,
-  Bell, UserCircle, TrendingUp, Banknote, KeyRound
+  Bell, UserCircle, TrendingUp, Banknote, KeyRound, ScrollText
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -34,6 +34,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
     { href: '/admin/groups', icon: Users, label: 'Groups' },
     { href: '/admin/payouts', icon: Wallet, label: 'Payouts' },
     { href: '/admin/withdrawals', icon: ArrowLeftRight, label: 'Withdrawals' },
+    { href: '/admin/payments', icon: ScrollText, label: 'Reconciliation' },
     { href: '/admin/fees', icon: Settings, label: 'Fee Config' },
   ];
 

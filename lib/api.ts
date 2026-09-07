@@ -164,6 +164,59 @@ export const groups = {
       `/groups/${groupId}/payout-debts/${debtId}/pay`, { method: 'POST' }),
 };
 
+export interface PaymentReview {
+  id: string;
+  reference_id: string;
+  lipila_id?: string | null;
+  type: 'collection' | 'disbursement';
+  status: 'pending' | 'successful' | 'failed';
+  amount: number;
+  currency: string;
+  account_number?: string | null;
+  payment_type?: string | null;
+  discrepancy?: string | null;
+  needs_review?: boolean;
+  check_attempts?: number;
+  last_checked_at?: string | null;
+  reconciled_at?: string | null;
+  reconciliation_source?: string | null;
+  created_at: string;
+  user_id?: string | null;
+  first_name?: string | null;
+  last_name?: string | null;
+  email?: string | null;
+  group_id?: string | null;
+  group_name?: string | null;
+  wallet_id?: string | null;
+}
+
+export interface PaymentEvent {
+  id: string;
+  reference_id: string;
+  event: string;
+  source: string;
+  previous_status?: string | null;
+  new_status?: string | null;
+  expected_amount?: number | null;
+  reported_amount?: number | null;
+  detail?: string | null;
+  actor_first_name?: string | null;
+  actor_last_name?: string | null;
+  created_at: string;
+}
+
+export interface LedgerEntry {
+  id: string;
+  type: string;
+  direction: 'credit' | 'debit';
+  amount: number;
+  balance_before: number;
+  balance_after: number;
+  status: string;
+  description?: string | null;
+  created_at: string;
+}
+
 export interface DisbursePayoutResponse {
   success: boolean;
   warning?: boolean;
@@ -484,6 +537,27 @@ export const admin = {
       request<{ success: boolean; data: PayoutSchedule[] }>('/admin/payouts/pending'),
     disburse: (id: string) =>
       request(`/admin/payouts/${id}/disburse`, { method: 'POST' }),
+  },
+  /** Payment reconciliation — audit and rectify money movements. */
+  reconciliation: {
+    review: () =>
+      request<{ success: boolean; data: PaymentReview[] }>('/admin/payments/review'),
+    detail: (referenceId: string) =>
+      request<{ success: boolean; data: {
+        transaction: PaymentReview;
+        events: PaymentEvent[];
+        ledger: LedgerEntry[];
+      } }>(`/admin/payments/${referenceId}`),
+    run: (referenceId?: string) =>
+      request<{ success: boolean; message: string; data: { checked: number; resolved: number; stillPending: number; errors: number } }>(
+        '/admin/payments/reconcile',
+        { method: 'POST', body: JSON.stringify(referenceId ? { referenceId } : {}) }
+      ),
+    resolve: (referenceId: string, action: 'credit' | 'fail' | 'clear_flag', note: string) =>
+      request<{ success: boolean; message: string }>(
+        `/admin/payments/${referenceId}/resolve`,
+        { method: 'POST', body: JSON.stringify({ action, note }) }
+      ),
   },
   withdrawals: {
     list: (params?: Record<string, string>) => {
