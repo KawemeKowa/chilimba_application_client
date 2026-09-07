@@ -58,6 +58,27 @@ async function request<T>(
   return data;
 }
 
+/**
+ * Resolve a stored file path (e.g. "/api/files/kyc/<id>/front.jpg") into a URL
+ * an <img> tag can load.
+ *
+ * Uploads now live on the API's Railway volume behind an authenticated route,
+ * and browsers don't send Authorization headers on image requests — so the
+ * access token rides along as ?token=. Absolute URLs are passed through
+ * untouched so records still holding an old Supabase link keep rendering.
+ */
+export function fileUrl(storedPath?: string | null): string {
+  if (!storedPath) return '';
+  if (/^https?:\/\//i.test(storedPath)) return storedPath;
+
+  const origin = BASE_URL.replace(/\/api\/?$/, '');
+  const path = storedPath.startsWith('/') ? storedPath : `/${storedPath}`;
+  const token = getToken();
+  return token
+    ? `${origin}${path}?token=${encodeURIComponent(token)}`
+    : `${origin}${path}`;
+}
+
 // Auth
 export const auth = {
   register: (body: FormData) =>

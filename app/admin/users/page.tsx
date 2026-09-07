@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { admin } from '@/lib/api';
+import { admin, fileUrl } from '@/lib/api';
 import type { User, PaginatedResponse, AdminUserDetail } from '@/lib/api';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -202,9 +202,16 @@ export default function AdminUsersPage() {
                     <div key={label as string}>
                       <p className="text-xs text-gray-500 mb-1">{label}</p>
                       {url ? (
-                        <a href={url as string} target="_blank" rel="noopener noreferrer">
+                        <a
+                          href={fileUrl(url as string)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title="Open full size"
+                          className="block h-40 rounded-lg border border-gray-200 bg-gray-100 overflow-hidden hover:opacity-90"
+                        >
+                          {/* object-contain, not cover — an ID must be readable end to end, never cropped */}
                           {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={url as string} alt={`ID ${label}`} className="w-full h-40 object-cover rounded-lg border border-gray-200 hover:opacity-90" />
+                          <img src={fileUrl(url as string)} alt={`ID ${label}`} className="w-full h-full object-contain" />
                         </a>
                       ) : <div className="w-full h-40 rounded-lg border border-dashed border-gray-300 flex items-center justify-center text-xs text-gray-400">Not provided</div>}
                     </div>

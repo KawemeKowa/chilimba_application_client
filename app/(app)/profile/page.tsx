@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { auth, payments, wallet } from '@/lib/api';
+import { auth, payments, wallet, fileUrl } from '@/lib/api';
 import { normalizeZmPhone, formatZmPhone } from '@/lib/phone';
 import type { PaymentMethod, Wallet } from '@/lib/api';
 import { Card } from '@/components/ui/Card';
@@ -420,14 +420,16 @@ export default function ProfilePage() {
 function FileField({ label, file, existing, onPick }: {
   label: string; file: File | null; existing?: string; onPick: (f: File | null) => void;
 }) {
-  const preview = file ? URL.createObjectURL(file) : existing;
+  const preview = file ? URL.createObjectURL(file) : fileUrl(existing);
   return (
     <div className="flex flex-col gap-1">
       <label className="text-sm font-medium text-gray-700 dark:text-slate-300">{label}</label>
-      <label className="relative flex flex-col items-center justify-center h-28 border-2 border-dashed border-gray-300 dark:border-slate-600 rounded-lg cursor-pointer hover:border-teal-400 dark:hover:border-teal-500 overflow-hidden bg-gray-50 dark:bg-slate-700/40">
+      <label className="relative flex flex-col items-center justify-center h-36 border-2 border-dashed border-gray-300 dark:border-slate-600 rounded-lg cursor-pointer hover:border-teal-400 dark:hover:border-teal-500 overflow-hidden bg-gray-50 dark:bg-slate-700/40">
         {preview ? (
+          // object-contain with padding — the whole ID must be visible to check
+          // it's the right way up and fully in frame before submitting
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={preview} alt={label} className="absolute inset-0 w-full h-full object-cover" />
+          <img src={preview} alt={label} className="absolute inset-0 w-full h-full object-contain p-1" />
         ) : (
           <>
             <Upload size={20} className="text-gray-400 dark:text-slate-500" />
