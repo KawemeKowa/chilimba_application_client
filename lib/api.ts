@@ -664,13 +664,20 @@ export interface Contribution {
   groupId: string;
   groupName?: string;
   userId: string;
+  /** Amount owed for this round (contributions.amount_due). */
   amount: number;
+  amountPaid?: number;
   status: 'pending' | 'paid' | 'late' | 'waived';
   dueDate: string;
   paidAt?: string;
   cycleNumber?: number;
   roundNumber?: number;
   reference?: string;
+  lateFeeCharged?: number;
+  monthlyAmount?: number;
+  /** Present on group listings, which join the member's name. */
+  firstName?: string;
+  lastName?: string;
 }
 
 export interface Withdrawal {

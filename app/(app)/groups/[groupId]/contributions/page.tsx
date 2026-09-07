@@ -10,10 +10,12 @@ import { Button } from '@/components/ui/Button';
 import { Badge, statusVariant } from '@/components/ui/Badge';
 import { Pagination } from '@/components/ui/Pagination';
 import { PageSpinner } from '@/components/ui/Spinner';
+import { useAuth } from '@/contexts/AuthContext';
 import { Coins, CheckCircle } from 'lucide-react';
 
 export default function ContributionsPage() {
   const { groupId } = useParams<{ groupId: string }>();
+  const { user } = useAuth();
   const [data, setData] = useState<PaginatedResponse<Contribution> | null>(null);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
@@ -45,14 +47,44 @@ export default function ContributionsPage() {
 
   if (loading && !data) return <PageSpinner />;
 
+  // Your own unpaid rows, soonest first
+  const myOutstanding = (data?.data ?? [])
+    .filter(c => c.userId === user?.id && (c.status === 'pending' || c.status === 'late'))
+    .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
+  const myTotalDue = myOutstanding.reduce((sum, c) => sum + Number(c.amount ?? 0), 0);
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100">Contributions</h1>
         <p className="text-gray-500 dark:text-slate-400 mt-1">
-          Track all contributions for this group. Paying draws from your group wallet — top it up first.
+          Every member&apos;s monthly contribution for this group. Pay your own row below —
+          the money comes out of your group wallet, so top that up first.
         </p>
       </div>
+
+      {/* What you personally still owe — the reason most people open this page */}
+      {myOutstanding.length > 0 && (
+        <div className="rounded-xl border border-teal-200 dark:border-teal-800 bg-teal-50 dark:bg-teal-900/20 p-4 flex items-center justify-between gap-4 flex-wrap">
+          <div>
+            <p className="text-sm font-semibold text-teal-800 dark:text-teal-300">
+              You owe ZMW {myTotalDue.toLocaleString('en-ZM', { minimumFractionDigits: 2 })}
+            </p>
+            <p className="text-xs text-teal-700 dark:text-teal-400 mt-0.5">
+              {myOutstanding.length} unpaid contribution{myOutstanding.length !== 1 ? 's' : ''} ·
+              next due {new Date(myOutstanding[0].dueDate).toLocaleDateString()}
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Link href={`/wallet?deposit=${groupId}`}>
+              <Button size="sm" variant="outline">Top Up Wallet</Button>
+            </Link>
+            <Button size="sm" loading={paying === myOutstanding[0].id} onClick={() => handlePay(myOutstanding[0].id)}>
+              <CheckCircle size={14} /> Pay Next
+            </Button>
+          </div>
+        </div>
+      )}
 
       {message && (
         <div className={`p-3 rounded-lg text-sm border flex items-center justify-between gap-4 ${message.ok
@@ -86,23 +118,38 @@ export default function ContributionsPage() {
                   </td>
                 </tr>
               )}
-              {data?.data.map(c => (
-                <tr key={c.id} className="hover:bg-gray-50">
-                  <td className="px-5 py-3 text-sm text-gray-900">{c.userId}</td>
-                  <td className="px-5 py-3 text-sm font-semibold text-gray-900">ZMW {(c.amount ?? 0).toLocaleString()}</td>
-                  <td className="px-5 py-3 text-sm text-gray-600">{new Date(c.dueDate).toLocaleDateString()}</td>
-                  <td className="px-5 py-3 text-sm text-gray-600">{c.paidAt ? new Date(c.paidAt).toLocaleDateString() : '—'}</td>
-                  <td className="px-5 py-3 text-sm text-gray-600">{c.cycleNumber ?? '—'}</td>
-                  <td className="px-5 py-3"><Badge label={c.status} variant={statusVariant(c.status)} /></td>
-                  <td className="px-5 py-3">
-                    {c.status === 'pending' || c.status === 'late' ? (
-                      <Button size="sm" loading={paying === c.id} onClick={() => handlePay(c.id)}>
-                        <CheckCircle size={14} /> Pay
-                      </Button>
-                    ) : null}
-                  </td>
-                </tr>
-              ))}
+              {data?.data.map(c => {
+                const isMine = c.userId === user?.id;
+                const owing = c.status === 'pending' || c.status === 'late';
+                return (
+                  <tr key={c.id} className={isMine ? 'bg-teal-50/40 dark:bg-teal-900/10' : 'hover:bg-gray-50 dark:hover:bg-slate-700/30'}>
+                    <td className="px-5 py-3 text-sm text-gray-900 dark:text-slate-100">
+                      {c.firstName || c.lastName ? `${c.firstName ?? ''} ${c.lastName ?? ''}`.trim() : '—'}
+                      {isMine && <span className="ml-2 text-xs font-semibold text-teal-600 dark:text-teal-400">You</span>}
+                    </td>
+                    <td className="px-5 py-3 text-sm font-semibold text-gray-900 dark:text-slate-100">
+                      ZMW {(c.amount ?? 0).toLocaleString('en-ZM', { minimumFractionDigits: 2 })}
+                    </td>
+                    <td className="px-5 py-3 text-sm text-gray-600 dark:text-slate-400">
+                      {c.dueDate ? new Date(c.dueDate).toLocaleDateString() : '—'}
+                    </td>
+                    <td className="px-5 py-3 text-sm text-gray-600 dark:text-slate-400">
+                      {c.paidAt ? new Date(c.paidAt).toLocaleDateString() : '—'}
+                    </td>
+                    <td className="px-5 py-3 text-sm text-gray-600 dark:text-slate-400">{c.cycleNumber ?? '—'}</td>
+                    <td className="px-5 py-3"><Badge label={c.status} variant={statusVariant(c.status)} /></td>
+                    <td className="px-5 py-3">
+                      {/* Only your own rows are payable — the API rejects paying
+                          for someone else, so offering the button would mislead */}
+                      {isMine && owing ? (
+                        <Button size="sm" loading={paying === c.id} onClick={() => handlePay(c.id)}>
+                          <CheckCircle size={14} /> Pay
+                        </Button>
+                      ) : null}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
