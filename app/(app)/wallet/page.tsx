@@ -87,49 +87,85 @@ export default function WalletPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading]);
 
-  // While a card payment is in flight, poll our own transaction history for
-  // the final outcome (the webhook resolves it server-side). When it lands,
-  // update the modal to a success/failed state so the user doesn't have to
-  // guess or click around. The popup's return message triggers an early check.
+  // While a payment is in flight — card or mobile money — resolve it without
+  // the user having to press anything.
+  //
+  // Waiting on the webhook alone isn't enough: if it never arrives the row
+  // stays pending forever. So each tick asks the server to pull the real
+  // status from the provider (syncStatus), then re-reads history. That works
+  // whether or not the callback lands.
   useEffect(() => {
     if (!pendingRef) return;
     let active = true;
+    let elapsed = 0;
 
+    // One request per tick. syncStatus already reports the resolved status, so
+    // history and balances are only re-fetched once, at the end — polling two
+    // endpoints would burn through the API rate limit and 429 the whole app.
     const check = async () => {
       try {
-        const r = await payments.history();
+        const res = await payments.syncStatus(pendingRef);
         if (!active) return;
-        setHistory(r.data);
-        const txn = r.data.find(t => t.referenceId === pendingRef);
-        if (txn && txn.status !== 'pending') {
-          setDepositResult({
-            success: txn.status === 'successful',
-            message: txn.status === 'successful'
-              ? 'Your wallet has been topped up.'
-              : 'The card payment did not go through.',
-            resolvedStatus: txn.status === 'successful' ? 'successful' : 'failed',
-          });
-          setPendingRef(null);
-          wallet.list().then(res => { if (active) setWallets(res.data); }).catch(() => {});
-        }
+        const status = res?.data?.status;
+        if (!status || status === 'pending') return;
+
+        const ok = status === 'successful';
+        setDepositResult({
+          success: ok,
+          message: ok
+            ? 'Your wallet has been topped up.'
+            : 'The payment did not go through. No money has been taken.',
+          resolvedStatus: ok ? 'successful' : 'failed',
+        });
+        setPendingRef(null);
+        payments.history().then(r => { if (active) setHistory(r.data); }).catch(() => {});
+        wallet.list().then(r => { if (active) setWallets(r.data); }).catch(() => {});
       } catch { /* keep polling */ }
     };
 
-    const interval = setInterval(check, 3000);
+    // Every 5s while someone is plausibly entering their PIN, then back off to
+    // 20s so a forgotten tab doesn't hammer the provider or eat the rate limit.
+    let interval = setInterval(check, 5000);
+    const backoff = setTimeout(() => {
+      clearInterval(interval);
+      if (active) interval = setInterval(check, 20000);
+    }, 90 * 1000);
+
     const onMessage = (e: MessageEvent) => {
       if (e.data?.type === 'chilimba:payment-return') check();
     };
     window.addEventListener('message', onMessage);
-    // Stop polling after 5 minutes regardless, to avoid an endless loop.
-    const stopAt = setTimeout(() => setPendingRef(null), 5 * 60 * 1000);
+
+    // Give up after 10 minutes. The server-side reconciliation sweep still
+    // picks it up afterwards, so nothing is lost by stopping here.
+    const stopAt = setTimeout(() => { if (active) setPendingRef(null); }, 10 * 60 * 1000);
 
     return () => {
       active = false;
       clearInterval(interval);
+      clearTimeout(backoff);
       clearTimeout(stopAt);
       window.removeEventListener('message', onMessage);
     };
   }, [pendingRef]);
+
+  // On load, quietly resolve anything still showing as pending in history, so
+  // the list is accurate without the user reaching for the refresh button.
+  useEffect(() => {
+    if (loading) return;
+    const stale = history.filter(t => t.status === 'pending').slice(0, 5);
+    if (!stale.length) return;
+    let active = true;
+    (async () => {
+      await Promise.allSettled(stale.map(t => payments.syncStatus(t.referenceId)));
+      if (!active) return;
+      const r = await payments.history().catch(() => null);
+      if (active && r) setHistory(r.data);
+    })();
+    return () => { active = false; };
+    // Runs once per load; the in-flight poller above covers live payments.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading]);
 
   const openDeposit = (w: Wallet) => {
     setTargetWallet(w);
@@ -176,13 +212,13 @@ export default function WalletPage() {
         method === 'card' ? { method: 'card' } : { method: 'mobile_money', mobileNumber: normalizedPhone! }
       );
       setDepositResult({ success: true, message: res.message, paymentUrl: res.data.paymentUrl });
-      // Card payments complete on Lipila's secure hosted checkout page — open
-      // the popup and start polling for the final outcome so the modal can
-      // update itself to success/failed without the user doing anything.
+      // Card payments finish on Lipila's hosted checkout — open the popup.
       if (res.data.paymentUrl) {
         openCheckoutPopup(res.data.paymentUrl);
-        setPendingRef(res.data.referenceId);
       }
+      // Poll for the outcome either way. Mobile money used to stop here and
+      // leave the member to press refresh themselves.
+      setPendingRef(res.data.referenceId);
     } catch (err: unknown) {
       setDepositResult({ success: false, message: err instanceof Error ? err.message : 'Deposit failed' });
     } finally {
@@ -425,13 +461,26 @@ export default function WalletPage() {
             <Button variant="secondary" className="mt-3 w-full" onClick={closeDeposit}>Close</Button>
           </div>
         ) : depositResult?.success ? (
-          /* Mobile money request sent — resolves via webhook */
+          /* Mobile money request sent — we poll for the outcome from here */
           <div className="text-center py-4">
-            <CheckCircle className="mx-auto mb-4 text-teal-600" size={48} />
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-100 mb-2">Payment request sent!</h3>
-            <p className="text-sm text-gray-600 dark:text-slate-400 mb-6">{depositResult.message}</p>
-            <p className="text-xs text-gray-400 dark:text-slate-500">Your balance will update automatically once you confirm the payment on your phone.</p>
-            <Button className="mt-6 w-full" onClick={closeDeposit}>Done</Button>
+            <Smartphone className="mx-auto mb-4 text-teal-600" size={48} />
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-100 mb-2">Check your phone</h3>
+            <p className="text-sm text-gray-600 dark:text-slate-400 mb-4">{depositResult.message}</p>
+            {pendingRef ? (
+              <>
+                <div className="flex items-center justify-center gap-2 text-xs text-amber-600 dark:text-amber-400 mb-4">
+                  <RefreshCw size={13} className="animate-spin" /> Waiting for confirmation…
+                </div>
+                <p className="text-xs text-gray-400 dark:text-slate-500">
+                  Enter your PIN on your phone. This updates by itself — you don&apos;t need to refresh.
+                </p>
+              </>
+            ) : (
+              <p className="text-xs text-gray-400 dark:text-slate-500">
+                Still not confirmed. It will appear in your payment history once the provider settles it.
+              </p>
+            )}
+            <Button variant="secondary" className="mt-6 w-full" onClick={closeDeposit}>Close</Button>
           </div>
         ) : (
           <form onSubmit={handleDeposit} className="space-y-4">
