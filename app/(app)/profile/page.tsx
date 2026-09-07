@@ -17,6 +17,12 @@ const PROVIDERS = [
   { value: 'zamtel', label: 'Zamtel Kwacha' },
 ] as const;
 
+const ID_TYPES = [
+  { value: 'national_id', label: 'National ID (NRC)' },
+  { value: 'drivers_license', label: "Driver's Licence" },
+  { value: 'passport', label: 'Passport' },
+] as const;
+
 export default function ProfilePage() {
   const { user, refresh } = useAuth();
   const [saving, setSaving] = useState(false);
@@ -157,12 +163,6 @@ export default function ProfilePage() {
     member: 'bg-teal-100 text-teal-700',
   };
 
-  const ID_TYPES = [
-    { value: 'national_id', label: 'National ID (NRC)' },
-    { value: 'drivers_license', label: "Driver's Licence" },
-    { value: 'passport', label: 'Passport' },
-  ] as const;
-
   return (
     <div className="space-y-6 max-w-2xl">
       <div>
@@ -201,24 +201,34 @@ export default function ProfilePage() {
         </p>
 
         {kycState === 'verified' && (
-          <div className="flex items-center gap-3 p-4 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
-            <ShieldCheck size={22} className="text-green-600 dark:text-green-400 flex-shrink-0" />
-            <div>
-              <p className="text-sm font-semibold text-green-800 dark:text-green-300">Your identity is verified</p>
-              <p className="text-xs text-green-700 dark:text-green-400">{ID_TYPES.find(t => t.value === user?.idType)?.label} · {user?.idNumber}</p>
+          <div className="space-y-4">
+            <div className="flex items-center gap-3 p-4 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
+              <ShieldCheck size={22} className="text-green-600 dark:text-green-400 flex-shrink-0" />
+              <div>
+                <p className="text-sm font-semibold text-green-800 dark:text-green-300">Your identity is verified</p>
+                <p className="text-xs text-green-700 dark:text-green-400">Approved by an admin — no further action needed.</p>
+              </div>
             </div>
+            <SubmittedDocuments user={user} />
           </div>
         )}
 
         {kycState === 'pending' && (
-          <div className="flex items-center gap-3 p-4 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
-            <Clock size={22} className="text-amber-600 dark:text-amber-400 flex-shrink-0" />
-            <div>
-              <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">Under review</p>
-              <p className="text-xs text-amber-700 dark:text-amber-400">
-                Your documents were submitted and are awaiting admin approval. We&apos;ll notify you once reviewed.
-              </p>
+          <div className="space-y-4">
+            <div className="flex items-center gap-3 p-4 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+              <Clock size={22} className="text-amber-600 dark:text-amber-400 flex-shrink-0" />
+              <div>
+                <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">Under review</p>
+                <p className="text-xs text-amber-700 dark:text-amber-400">
+                  Submitted {user?.kycSubmittedAt ? new Date(user.kycSubmittedAt).toLocaleDateString('en-ZM', { day: 'numeric', month: 'long', year: 'numeric' }) : ''}.
+                  We&apos;ll email you once an admin has reviewed it.
+                </p>
+              </div>
             </div>
+            <SubmittedDocuments user={user} />
+            <p className="text-xs text-gray-400 dark:text-slate-500">
+              Spotted a mistake? Wait for the review to finish — if it&apos;s rejected you can upload new photos straight away.
+            </p>
           </div>
         )}
 
@@ -229,7 +239,12 @@ export default function ProfilePage() {
                 <AlertTriangle size={18} className="text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
                 <div>
                   <p className="text-sm font-semibold text-red-700 dark:text-red-400">Your previous submission was rejected</p>
-                  <p className="text-xs text-red-600 dark:text-red-400">{user?.kycRejectionReason} Please correct and resubmit.</p>
+                  <p className="text-xs text-red-600 dark:text-red-400 mt-1">
+                    <span className="font-medium">Reason:</span> {user?.kycRejectionReason}
+                  </p>
+                  <p className="text-xs text-red-600 dark:text-red-400 mt-1">
+                    Upload clearer photos below and resubmit — your details are still filled in.
+                  </p>
                 </div>
               </div>
             )}
@@ -417,6 +432,58 @@ export default function ProfilePage() {
 }
 
 // Image picker with preview for KYC uploads
+/**
+ * Read-only view of what was submitted, shown while awaiting review and after
+ * approval — so people can check the details they sent without resubmitting.
+ */
+function SubmittedDocuments({ user }: { user: ReturnType<typeof useAuth>['user'] }) {
+  const docs: [string, string | undefined][] = [
+    ['Front', user?.idFrontUrl],
+    ['Back', user?.idBackUrl],
+  ];
+  return (
+    <div className="rounded-lg border border-gray-200 dark:border-slate-700 p-4 space-y-4">
+      <div className="grid grid-cols-2 gap-4 text-sm">
+        <div>
+          <p className="text-gray-500 dark:text-slate-400 text-xs">ID type</p>
+          <p className="font-medium text-gray-900 dark:text-slate-100 mt-0.5">
+            {ID_TYPES.find(t => t.value === user?.idType)?.label ?? '—'}
+          </p>
+        </div>
+        <div>
+          <p className="text-gray-500 dark:text-slate-400 text-xs">ID number</p>
+          <p className="font-medium text-gray-900 dark:text-slate-100 mt-0.5">{user?.idNumber || '—'}</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        {docs.map(([label, url]) => (
+          <div key={label}>
+            <p className="text-gray-500 dark:text-slate-400 text-xs mb-1.5">{label}</p>
+            {url ? (
+              <a
+                href={fileUrl(url)}
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Open full size"
+                className="block h-36 rounded-lg border border-gray-200 dark:border-slate-700 bg-gray-100 dark:bg-slate-900 overflow-hidden hover:opacity-90 transition-opacity"
+              >
+                {/* contain, not cover — the whole document must stay readable */}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={fileUrl(url)} alt={`ID ${label}`} className="w-full h-full object-contain" />
+              </a>
+            ) : (
+              <div className="h-36 rounded-lg border border-dashed border-gray-300 dark:border-slate-600 flex items-center justify-center text-xs text-gray-400 dark:text-slate-500">
+                Not provided
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function FileField({ label, file, existing, onPick }: {
   label: string; file: File | null; existing?: string; onPick: (f: File | null) => void;
 }) {
