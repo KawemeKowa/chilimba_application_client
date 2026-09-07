@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { groups } from '@/lib/api';
+import { ordinal } from '@/lib/format';
 import type { GroupDetail, GroupMember, PendingInvitation } from '@/lib/api';
 import { Mail } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
@@ -323,11 +324,11 @@ export default function GroupDetailPage() {
             </div>
             <div className="flex justify-between">
               <dt className="text-gray-500 dark:text-slate-400">Contribution Day</dt>
-              <dd className="font-medium text-gray-900 dark:text-slate-100">{group.contributionDay}th of month</dd>
+              <dd className="font-medium text-gray-900 dark:text-slate-100">{ordinal(group.contributionDay ?? 1)} of month</dd>
             </div>
             <div className="flex justify-between">
               <dt className="text-gray-500 dark:text-slate-400">Payout Day</dt>
-              <dd className="font-medium text-gray-900 dark:text-slate-100">{group.payoutDay}th of month</dd>
+              <dd className="font-medium text-gray-900 dark:text-slate-100">{ordinal(group.payoutDay ?? 1)} of month</dd>
             </div>
             <div className="flex justify-between">
               <dt className="text-gray-500 dark:text-slate-400">Min Approvals</dt>

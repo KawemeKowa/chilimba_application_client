@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { groups } from '@/lib/api';
+import { ordinal } from '@/lib/format';
 import type { GroupDetail } from '@/lib/api';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
@@ -80,7 +81,7 @@ export default function ConstitutionPage() {
           </h2>
           <dl>
             <Row label="Monthly contribution" value={`${cur} ${(group.monthlyAmount ?? 0).toLocaleString()}`} />
-            <Row label="Contribution day" value={`${group.contributionDay} of each month`} />
+            <Row label="Contribution day" value={`${ordinal(group.contributionDay ?? 1)} of each month`} />
             <Row label="Grace period" value={`${group.gracePeriodDays ?? 0} day${(group.gracePeriodDays ?? 0) !== 1 ? 's' : ''}`} />
             <Row label="Late payment penalty" value={lateFee} />
             <Row label="Max members" value={group.maxMembers} />
@@ -93,7 +94,7 @@ export default function ConstitutionPage() {
             <ListOrdered size={18} className="text-teal-600 dark:text-teal-400" /> Payout Schedule
           </h2>
           <dl>
-            <Row label="Payout day" value={`${group.payoutDay} of each month`} />
+            <Row label="Payout day" value={`${ordinal(group.payoutDay ?? 1)} of each month`} />
             <Row label="Payout order" value={ORDER_MODE_LABEL[group.payoutOrderMode ?? 'fixed'] ?? group.payoutOrderMode} />
             <Row label="Order after first payout" value={group.scheduleLocked
               ? <Badge label="Locked" variant="warning" />

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { invitations } from '@/lib/api';
+import { ordinal } from '@/lib/format';
 import type { GroupInvitation } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/Button';
@@ -170,7 +171,7 @@ export default function InvitationPage() {
                   </div>
                   <div className="flex items-center gap-2 text-sm text-teal-800">
                     <Calendar size={15} className="text-teal-600" />
-                    <span>Payout on the {invite.group.payoutDay}th of each month</span>
+                    <span>Payout on the {ordinal(invite.group.payoutDay ?? 1)} of each month</span>
                   </div>
                 </div>
               </div>

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { groups } from '@/lib/api';
+import { ordinal } from '@/lib/format';
 import type { Group } from '@/lib/api';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -11,12 +12,6 @@ import { Modal } from '@/components/ui/Modal';
 import { Input, Textarea, Select } from '@/components/ui/Input';
 import { PageSpinner } from '@/components/ui/Spinner';
 import { Users, Plus, LogIn, ArrowRight, Calendar, Coins } from 'lucide-react';
-
-const ordinal = (n: number) => {
-  const v = n % 100;
-  const s = ['th', 'st', 'nd', 'rd'];
-  return n + (s[(v - 20) % 10] || s[v] || s[0]);
-};
 
 export default function GroupsPage() {
   const [myGroups, setMyGroups] = useState<Group[]>([]);
