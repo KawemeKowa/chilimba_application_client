@@ -28,6 +28,7 @@ export function statusVariant(status: string): BadgeProps['variant'] {
     pending: 'warning',
     pending_approval: 'warning',
     pending_verification: 'warning',
+    inactive: 'warning',
     processing: 'info',
     scheduled: 'info',
     late: 'danger',
