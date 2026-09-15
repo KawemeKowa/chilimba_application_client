@@ -46,33 +46,33 @@ export default function ResetPasswordPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-900 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-14 h-14 bg-teal-600 rounded-2xl mb-4">
             <span className="text-white text-2xl font-bold">C</span>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">Set a new password</h1>
-          <p className="text-gray-500 mt-1">Choose a strong password for your account.</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100">Set a new password</h1>
+          <p className="text-gray-500 dark:text-slate-400 mt-1">Choose a strong password for your account.</p>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700 p-8">
           {done ? (
             <div className="text-center py-4">
               <CheckCircle className="mx-auto mb-4 text-teal-600" size={48} />
-              <h2 className="text-lg font-semibold text-gray-900 mb-2">Password reset!</h2>
-              <p className="text-sm text-gray-600">Taking you to sign in with your new password…</p>
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-slate-100 mb-2">Password reset!</h2>
+              <p className="text-sm text-gray-600 dark:text-slate-400">Taking you to sign in with your new password…</p>
             </div>
           ) : (
             <>
               {error && (
-                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
+                <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-600 dark:text-red-400">
                   {error}
                 </div>
               )}
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="flex flex-col gap-1">
-                  <label className="text-sm font-medium text-gray-700">New password</label>
+                  <label className="text-sm font-medium text-gray-700 dark:text-slate-300">New password</label>
                   <div className="relative">
                     <input
                       type={showPassword ? 'text' : 'password'}
@@ -82,12 +82,12 @@ export default function ResetPasswordPage() {
                       required
                       minLength={8}
                       autoComplete="new-password"
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 pr-10"
+                      className="w-full border border-gray-300 dark:border-slate-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 pr-10 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder:text-gray-400 dark:placeholder:text-slate-500"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(v => !v)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-300 cursor-pointer"
                     >
                       {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                     </button>
@@ -95,7 +95,7 @@ export default function ResetPasswordPage() {
                 </div>
 
                 <div className="flex flex-col gap-1">
-                  <label className="text-sm font-medium text-gray-700">Confirm password</label>
+                  <label className="text-sm font-medium text-gray-700 dark:text-slate-300">Confirm password</label>
                   <div className="relative">
                     <input
                       type={showConfirm ? 'text' : 'password'}
@@ -104,14 +104,14 @@ export default function ResetPasswordPage() {
                       placeholder="Repeat your new password"
                       required
                       autoComplete="new-password"
-                      className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 pr-10 ${
-                        mismatch ? 'border-red-400' : 'border-gray-300'
+                      className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 pr-10 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder:text-gray-400 dark:placeholder:text-slate-500 ${
+                        mismatch ? 'border-red-400' : 'border-gray-300 dark:border-slate-600'
                       }`}
                     />
                     <button
                       type="button"
                       onClick={() => setShowConfirm(v => !v)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-300 cursor-pointer"
                     >
                       {showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
                     </button>
@@ -132,8 +132,8 @@ export default function ResetPasswordPage() {
                 </Button>
               </form>
 
-              <p className="mt-6 text-center text-sm text-gray-600">
-                <Link href="/auth/login" className="text-teal-600 font-medium hover:underline">
+              <p className="mt-6 text-center text-sm text-gray-600 dark:text-slate-400">
+                <Link href="/auth/login" className="text-teal-600 dark:text-teal-400 font-medium hover:underline">
                   Back to sign in
                 </Link>
               </p>
