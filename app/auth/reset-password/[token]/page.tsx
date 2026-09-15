@@ -31,8 +31,13 @@ export default function ResetPasswordPage() {
     setLoading(true);
     try {
       await auth.resetPassword(token, password);
+      // The reset revokes every refresh token and issues no new session, so any
+      // tokens still in storage are dead. Clear them and send the member to
+      // sign in — routing to /dashboard only bounces off the protected layout.
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
       setDone(true);
-      setTimeout(() => router.replace('/dashboard'), 2500);
+      setTimeout(() => router.replace('/auth/login'), 2500);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Reset failed. The link may have expired.');
     } finally {
@@ -56,7 +61,7 @@ export default function ResetPasswordPage() {
             <div className="text-center py-4">
               <CheckCircle className="mx-auto mb-4 text-teal-600" size={48} />
               <h2 className="text-lg font-semibold text-gray-900 mb-2">Password reset!</h2>
-              <p className="text-sm text-gray-600">Redirecting you to your dashboard…</p>
+              <p className="text-sm text-gray-600">Taking you to sign in with your new password…</p>
             </div>
           ) : (
             <>
