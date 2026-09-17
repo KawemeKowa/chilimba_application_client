@@ -330,6 +330,16 @@ export const contributions = {
 };
 
 // Withdrawals
+/** What the current member may do on a group's withdrawals page. */
+export interface WithdrawalListMeta {
+  groupStatus: string | null;
+  /** false while the group is inactive */
+  canRequest: boolean;
+  /** true only for approvers (withdrawal.vote) in an active group */
+  canVote: boolean;
+}
+export type WithdrawalListResponse = PaginatedResponse<Withdrawal> & { meta?: WithdrawalListMeta };
+
 export const withdrawals = {
   request: (groupId: string, amount: number, reason: string) =>
     request<{ success: boolean; data: Withdrawal }>(`/withdrawals/groups/${groupId}`, {
@@ -338,7 +348,7 @@ export const withdrawals = {
     }),
   list: (groupId: string, params?: Record<string, string>) => {
     const q = params ? '?' + new URLSearchParams(params).toString() : '';
-    return request<PaginatedResponse<Withdrawal>>(`/withdrawals/groups/${groupId}${q}`);
+    return request<WithdrawalListResponse>(`/withdrawals/groups/${groupId}${q}`);
   },
   vote: (withdrawalId: string, action: 'approved' | 'rejected', comment?: string) =>
     request(`/withdrawals/${withdrawalId}/vote`, {

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { withdrawals } from '@/lib/api';
-import type { Withdrawal, PaginatedResponse } from '@/lib/api';
+import type { WithdrawalListResponse } from '@/lib/api';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge, statusVariant } from '@/components/ui/Badge';
@@ -18,7 +18,7 @@ import { ArrowLeftRight, Plus, ThumbsUp, ThumbsDown } from 'lucide-react';
 export default function WithdrawalsPage() {
   const { groupId } = useParams<{ groupId: string }>();
   const { user } = useAuth();
-  const [data, setData] = useState<PaginatedResponse<Withdrawal> | null>(null);
+  const [data, setData] = useState<WithdrawalListResponse | null>(null);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [requestOpen, setRequestOpen] = useState(false);
@@ -61,6 +61,12 @@ export default function WithdrawalsPage() {
 
   if (loading && !data) return <PageSpinner />;
 
+  // Default to the permissive reading only if the API predates meta; the API
+  // still enforces both rules, this just avoids showing buttons that fail.
+  const canRequest = data?.meta?.canRequest ?? true;
+  const canVote = data?.meta?.canVote ?? true;
+  const inactive = data?.meta?.groupStatus === 'inactive';
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -69,11 +75,18 @@ export default function WithdrawalsPage() {
         backLabel="group"
         subtitle="Request and vote on group withdrawals"
         actions={
-          <Button onClick={() => { setError(''); setRequestOpen(true); }}>
+          <Button onClick={() => { setError(''); setRequestOpen(true); }} disabled={!canRequest}
+            title={inactive ? 'Withdrawals open once the group is activated' : undefined}>
             <Plus size={16} /> Request Withdrawal
           </Button>
         }
       />
+
+      {inactive && (
+        <div className="p-3 rounded-lg text-sm border bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300">
+          This group hasn&apos;t been activated yet. Withdrawal requests and votes open once the group admin activates it.
+        </div>
+      )}
 
       <div className="space-y-4">
         {data?.data.length === 0 && (
@@ -100,7 +113,7 @@ export default function WithdrawalsPage() {
                   </p>
                 )}
               </div>
-              {w.status === 'pending_approval' && w.requestedBy !== user?.id && (
+              {w.status === 'pending_approval' && w.requestedBy !== user?.id && canVote && (
                 <div className="flex gap-2 ml-4">
                   <Button
                     variant="outline" size="sm"
