@@ -417,6 +417,9 @@ export const payments = {
       method: 'PUT',
       body: JSON.stringify({ bankName, accountNumber, accountName, branch, swiftCode }),
     }),
+  /** Payouts try mobile money first, so removing it is how you route them to the bank account. */
+  deleteMethod: (type: 'mobile_money' | 'bank') =>
+    request<{ success: boolean; message: string }>(`/payments/methods/${type}`, { method: 'DELETE' }),
   history: () =>
     request<{ success: boolean; data: LipilaTransaction[] }>('/payments/history'),
   syncStatus: (referenceId: string) =>

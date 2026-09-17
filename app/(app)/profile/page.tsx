@@ -80,7 +80,9 @@ export default function ProfilePage() {
   const [momoMsg, setMomoMsg] = useState('');
   const [bankMsg, setBankMsg] = useState('');
 
-  useEffect(() => {
+  const [removing, setRemoving] = useState<'mobile_money' | 'bank' | null>(null);
+
+  const loadMethods = () =>
     payments.methods().then(r => {
       setPaymentMethods(r.data);
       const momo = r.data.find(m => m.type === 'mobile_money');
@@ -88,7 +90,31 @@ export default function ProfilePage() {
       if (momo) setMomoForm({ mobileNumber: momo.mobileNumber || '', provider: (momo.mobileProvider as 'mtn' | 'airtel' | 'zamtel') || 'mtn' });
       if (bank) setBankForm({ bankName: bank.bankName || '', accountNumber: bank.accountNumber || '', accountName: bank.accountName || '', branch: bank.branch || '', swiftCode: bank.swiftCode || '' });
     }).catch(() => {});
-  }, []);
+
+  useEffect(() => { loadMethods(); }, []);
+
+  const savedMomo = paymentMethods.find(m => m.type === 'mobile_money');
+  const savedBank = paymentMethods.find(m => m.type === 'bank');
+  // Mirrors the API's routing: mobile money first, then a bank account with a SWIFT code, else wallet only.
+  const payoutRoute = savedMomo
+    ? `mobile money ${formatZmPhone(savedMomo.mobileNumber || '')}`
+    : savedBank?.swiftCode
+      ? `${savedBank.bankName} account ${savedBank.accountNumber}`
+      : null;
+
+  const handleRemove = async (type: 'mobile_money' | 'bank') => {
+    const label = type === 'mobile_money' ? 'mobile money number' : 'bank details';
+    if (!window.confirm(`Remove your saved ${label}? Payouts will go to your other saved method, or stay in your wallet if there is none.`)) return;
+    setRemoving(type);
+    try {
+      await payments.deleteMethod(type);
+      if (type === 'mobile_money') { setMomoForm({ mobileNumber: '', provider: 'mtn' }); setMomoMsg('Mobile money details removed.'); }
+      else { setBankForm({ bankName: '', accountNumber: '', accountName: '', branch: '', swiftCode: '' }); setBankMsg('Bank details removed.'); }
+      await loadMethods();
+    } catch (err: unknown) {
+      (type === 'mobile_money' ? setMomoMsg : setBankMsg)(err instanceof Error ? err.message : 'Failed to remove');
+    } finally { setRemoving(null); }
+  };
 
   const handleSaveMomo = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -104,6 +130,7 @@ export default function ProfilePage() {
     try {
       await payments.saveMobileMoney(normalized, momoForm.provider);
       setMomoMsg('Mobile money details saved.');
+      await loadMethods();
     } catch (err: unknown) {
       setMomoMsg(err instanceof Error ? err.message : 'Failed to save');
     } finally { setSavingMomo(false); }
@@ -116,6 +143,7 @@ export default function ProfilePage() {
     try {
       await payments.saveBankDetails(bankForm.bankName, bankForm.accountNumber, bankForm.accountName, bankForm.branch, bankForm.swiftCode);
       setBankMsg('Bank details saved.');
+      await loadMethods();
     } catch (err: unknown) {
       setBankMsg(err instanceof Error ? err.message : 'Failed to save');
     } finally { setSavingBank(false); }
@@ -361,10 +389,14 @@ export default function ProfilePage() {
       {/* Mobile money */}
       <Card>
         <h2 className="font-semibold text-gray-900 mb-1 flex items-center gap-2"><Smartphone size={18} /> Mobile Money</h2>
-        <p className="text-sm text-gray-500 mb-4">Used to receive payouts and top up your wallet.</p>
+        <p className="text-sm text-gray-500 mb-1">Used to receive payouts and top up your wallet.</p>
+        <p className="text-sm mb-4 text-gray-700 dark:text-slate-300">
+          Payouts currently go to: <span className="font-medium">{payoutRoute ?? 'your Chilimba wallet only — save a number or bank account to receive them directly'}</span>.
+          {savedMomo && savedBank ? ' Mobile money is used first; remove it to pay out by bank instead.' : ''}
+        </p>
         {momoMsg && (
-          <div className={`mb-4 p-3 rounded-lg text-sm flex items-center gap-2 ${momoMsg.includes('saved') ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600'}`}>
-            {momoMsg.includes('saved') && <CheckCircle size={16} />}
+          <div className={`mb-4 p-3 rounded-lg text-sm flex items-center gap-2 ${/saved|removed/.test(momoMsg) ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600'}`}>
+            {/saved|removed/.test(momoMsg) && <CheckCircle size={16} />}
             {momoMsg}
           </div>
         )}
@@ -399,7 +431,14 @@ export default function ProfilePage() {
                   </p>
             )}
           </div>
-          <Button type="submit" loading={savingMomo}>Save Mobile Money</Button>
+          <div className="flex flex-wrap gap-2">
+            <Button type="submit" loading={savingMomo}>{savedMomo ? 'Update Mobile Money' : 'Save Mobile Money'}</Button>
+            {savedMomo && (
+              <Button type="button" variant="outline" loading={removing === 'mobile_money'} onClick={() => handleRemove('mobile_money')}>
+                Remove
+              </Button>
+            )}
+          </div>
         </form>
       </Card>
 
@@ -408,8 +447,8 @@ export default function ProfilePage() {
         <h2 className="font-semibold text-gray-900 mb-1 flex items-center gap-2"><Building2 size={18} /> Bank Account</h2>
         <p className="text-sm text-gray-500 mb-4">For direct bank transfer payouts.</p>
         {bankMsg && (
-          <div className={`mb-4 p-3 rounded-lg text-sm flex items-center gap-2 ${bankMsg.includes('saved') ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600'}`}>
-            {bankMsg.includes('saved') && <CheckCircle size={16} />}
+          <div className={`mb-4 p-3 rounded-lg text-sm flex items-center gap-2 ${/saved|removed/.test(bankMsg) ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600'}`}>
+            {/saved|removed/.test(bankMsg) && <CheckCircle size={16} />}
             {bankMsg}
           </div>
         )}
@@ -424,7 +463,14 @@ export default function ProfilePage() {
             <Input label="SWIFT/BIC code" value={bankForm.swiftCode} onChange={e => setBankForm(f => ({ ...f, swiftCode: e.target.value }))} placeholder="e.g. ZNCOZMLU" required />
           </div>
           <p className="text-xs text-gray-500">Required to receive payouts by bank transfer. Ask your bank if you don&apos;t know your SWIFT code.</p>
-          <Button type="submit" loading={savingBank}>Save Bank Details</Button>
+          <div className="flex flex-wrap gap-2">
+            <Button type="submit" loading={savingBank}>{savedBank ? 'Update Bank Details' : 'Save Bank Details'}</Button>
+            {savedBank && (
+              <Button type="button" variant="outline" loading={removing === 'bank'} onClick={() => handleRemove('bank')}>
+                Remove
+              </Button>
+            )}
+          </div>
         </form>
       </Card>
     </div>
