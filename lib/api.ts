@@ -838,16 +838,22 @@ export interface Wallet {
   currentCycle?: number;
 }
 
+/** One ledger line from GET /wallet/transactions (a wallet's own movement). */
 export interface Transaction {
   id: string;
   walletId: string;
+  walletType: 'personal' | 'group';
+  /** set for group wallets */
+  groupName?: string | null;
   type: string;
+  direction: 'credit' | 'debit';
   amount: number;
+  balanceBefore: number;
+  balanceAfter: number;
   status: string;
-  from?: string;
-  to?: string;
-  initiator?: string;
-  reference?: string;
+  referenceId?: string | null;
+  referenceType?: string | null;
+  description?: string | null;
   createdAt: string;
 }
 

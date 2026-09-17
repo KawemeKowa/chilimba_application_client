@@ -46,6 +46,11 @@ export default function TransactionsPage() {
     if (['withdrawal', 'fee'].includes(type)) return 'text-red-500';
     return 'text-gray-700';
   };
+  const money = (n: number) => n.toLocaleString('en-ZM', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const when = (iso: string) => {
+    const d = new Date(iso);
+    return Number.isNaN(d.getTime()) ? '—' : d.toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' });
+  };
 
   return (
     <div className="space-y-6">
@@ -81,8 +86,8 @@ export default function TransactionsPage() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-gray-100">
-                    {['Date', 'Type', 'From', 'To', 'Amount', 'Status', 'Reference'].map(h => (
-                      <th key={h} className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wide px-5 py-4">{h}</th>
+                    {['Date', 'Type', 'Wallet', 'Description', 'Amount', 'Balance after', 'Status'].map(h => (
+                      <th key={h} className={`text-xs font-semibold text-gray-500 uppercase tracking-wide px-5 py-4 ${['Amount', 'Balance after'].includes(h) ? 'text-right' : 'text-left'}`}>{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -95,13 +100,15 @@ export default function TransactionsPage() {
                   )}
                   {data?.data.map(tx => (
                     <tr key={tx.id} className="hover:bg-gray-50">
-                      <td className="px-5 py-3 text-sm text-gray-600">{new Date(tx.createdAt).toLocaleDateString()}</td>
+                      <td className="px-5 py-3 text-sm text-gray-600 whitespace-nowrap">{when(tx.createdAt)}</td>
                       <td className={`px-5 py-3 text-sm font-medium capitalize ${txTypeColor(tx.type)}`}>{tx.type}</td>
-                      <td className="px-5 py-3 text-sm text-gray-600 max-w-24 truncate">{tx.from || '—'}</td>
-                      <td className="px-5 py-3 text-sm text-gray-600 max-w-24 truncate">{tx.to || '—'}</td>
-                      <td className="px-5 py-3 text-sm font-semibold text-gray-900">ZMW {(tx.amount ?? 0).toLocaleString()}</td>
+                      <td className="px-5 py-3 text-sm text-gray-600 max-w-40 truncate">{tx.walletType === 'group' ? (tx.groupName ?? 'Group') : 'Personal'}</td>
+                      <td className="px-5 py-3 text-sm text-gray-600 max-w-64 truncate" title={tx.description ?? undefined}>{tx.description || '—'}</td>
+                      <td className={`px-5 py-3 text-sm font-semibold text-right whitespace-nowrap tabular-nums ${tx.direction === 'debit' ? 'text-red-500' : 'text-green-600'}`}>
+                        {tx.direction === 'debit' ? '−' : '+'} ZMW {money(tx.amount ?? 0)}
+                      </td>
+                      <td className="px-5 py-3 text-sm text-gray-600 text-right whitespace-nowrap tabular-nums">ZMW {money(tx.balanceAfter ?? 0)}</td>
                       <td className="px-5 py-3"><Badge label={tx.status} variant={statusVariant(tx.status)} /></td>
-                      <td className="px-5 py-3 text-xs text-gray-400 font-mono truncate max-w-28">{tx.reference || '—'}</td>
                     </tr>
                   ))}
                 </tbody>
