@@ -821,6 +821,8 @@ export interface Wallet {
   currency: string;
   groupId?: string;
   groupName?: string;
+  /** Mirrors groups.status — 'inactive' groups can't take deposits or transfers yet. */
+  groupStatus?: string;
   monthlyAmount?: number;
   maxMembers?: number;
   currentCycle?: number;

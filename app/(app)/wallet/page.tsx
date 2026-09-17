@@ -82,6 +82,9 @@ export default function WalletPage() {
     if (depositGroupId && !loading) {
       const target = wallets.find(w => w.groupId === depositGroupId)
         ?? { id: '', type: 'group' as const, groupId: depositGroupId, balance: 0, currency: 'ZMW' };
+      // An inactive group can't take money; the notice is rendered from the
+      // URL param below instead of opening a modal the API would refuse.
+      if (target.groupStatus === 'inactive') return;
       openDeposit(target);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -265,6 +268,13 @@ export default function WalletPage() {
   const total = wallets.reduce((sum, w) => sum + Number(w.balance), 0);
   const personalWallet = wallets.find(w => w.type === 'personal');
   const groupWallets = wallets.filter(w => w.type === 'group');
+  // A group in setup can't take money yet — the API refuses it, so don't offer it.
+  const fundableGroupWallets = groupWallets.filter(w => w.groupStatus !== 'inactive');
+  const inactiveHint = (w: Wallet) => w.groupStatus === 'inactive' ? 'Not activated yet — deposits open once the admin activates the group' : undefined;
+  const depositParam = searchParams.get('deposit');
+  const blockedDeposit = depositParam
+    ? groupWallets.find(w => w.groupId === depositParam && w.groupStatus === 'inactive')
+    : undefined;
 
   const monthly = targetWallet?.monthlyAmount ?? 0;
   const preloadOptions = monthly > 0
@@ -282,6 +292,11 @@ export default function WalletPage() {
         <p className="text-gray-500 dark:text-slate-400 mt-1">Manage balances and top up via mobile money</p>
       </div>
 
+      {blockedDeposit && !actionMsg && (
+        <div className="p-3 rounded-lg text-sm border bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300">
+          {blockedDeposit.groupName} hasn&apos;t been activated yet. Deposits open once the group admin activates it.
+        </div>
+      )}
       {actionMsg && (
         <div className={`p-3 rounded-lg text-sm border ${actionMsg.ok
           ? 'bg-teal-50 dark:bg-teal-900/20 border-teal-200 dark:border-teal-800 text-teal-700 dark:text-teal-300'
@@ -330,7 +345,8 @@ export default function WalletPage() {
                     <TrendingUp size={14} /> Transactions
                   </Button>
                 </Link>
-                <Button size="sm" onClick={() => openDeposit(w)} className="flex-1">
+                <Button size="sm" onClick={() => openDeposit(w)} className="flex-1"
+                  disabled={w.groupStatus === 'inactive'} title={inactiveHint(w)}>
                   <Plus size={14} /> Top Up
                 </Button>
               </div>
@@ -339,11 +355,12 @@ export default function WalletPage() {
                 <div className="flex gap-2">
                   <Button
                     variant="outline" size="sm" className="flex-1"
-                    disabled={groupWallets.length === 0 || w.balance <= 0}
-                    title={groupWallets.length === 0 ? 'Join a group first' : undefined}
+                    disabled={fundableGroupWallets.length === 0 || w.balance <= 0}
+                    title={groupWallets.length === 0 ? 'Join a group first'
+                      : fundableGroupWallets.length === 0 ? 'None of your groups has been activated yet' : undefined}
                     onClick={() => {
                       setActionMsg(null);
-                      setTransferGroup(groupWallets[0]?.groupId ?? '');
+                      setTransferGroup(fundableGroupWallets[0]?.groupId ?? '');
                       setTransferAmount('');
                       setTransferOpen(true);
                     }}
@@ -612,8 +629,8 @@ export default function WalletPage() {
               className="w-full border border-gray-300 dark:border-slate-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500"
             >
               {groupWallets.map(g => (
-                <option key={g.id} value={g.groupId}>
-                  {g.groupName} — {g.currency} {g.balance.toLocaleString()}
+                <option key={g.id} value={g.groupId} disabled={g.groupStatus === 'inactive'}>
+                  {g.groupName} — {g.currency} {g.balance.toLocaleString()}{g.groupStatus === 'inactive' ? ' (not activated yet)' : ''}
                 </option>
               ))}
             </select>

@@ -279,9 +279,15 @@ export default function GroupDetailPage() {
             </p>
           ) : null}
         </div>
-        <Link href={`/wallet?deposit=${groupId}`}>
-          <Button variant="secondary" size="sm"><PlusCircle size={14} /> Top Up</Button>
-        </Link>
+        {group.status === 'inactive' ? (
+          <Button variant="secondary" size="sm" disabled title="Deposits open once the group is activated">
+            <PlusCircle size={14} /> Top Up
+          </Button>
+        ) : (
+          <Link href={`/wallet?deposit=${groupId}`}>
+            <Button variant="secondary" size="sm"><PlusCircle size={14} /> Top Up</Button>
+          </Link>
+        )}
       </div>
 
       {/* Quick actions */}
@@ -291,7 +297,7 @@ export default function GroupDetailPage() {
           { href: `/groups/${groupId}/withdrawals`, icon: ArrowLeftRight, label: 'Withdrawals' },
           { href: `/groups/${groupId}/committees`, icon: Gift, label: 'Committees' },
           { href: `/groups/${groupId}/messages`, icon: MessageSquare, label: 'Messages' },
-          { href: `/wallet?deposit=${groupId}`, icon: PlusCircle, label: 'Top Up' },
+          ...(group.status === 'inactive' ? [] : [{ href: `/wallet?deposit=${groupId}`, icon: PlusCircle, label: 'Top Up' }]),
           { href: `/groups/${groupId}/payouts`, icon: List, label: 'Payouts' },
           { href: `/groups/${groupId}/money-owed`, icon: DollarSign, label: 'Money Owed' },
           { href: `/groups/${groupId}/constitution`, icon: ScrollText, label: 'Rules' },
